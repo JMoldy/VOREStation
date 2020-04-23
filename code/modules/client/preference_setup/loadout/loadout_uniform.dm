@@ -65,6 +65,8 @@
 	..()
 	var/list/skirts = list()
 	for(var/skirt in (typesof(/obj/item/clothing/under/skirt)))
+		if(skirt in typesof(/obj/item/clothing/under/skirt/fluff))	//VOREStation addition
+			continue												//VOREStation addition
 		var/obj/item/clothing/under/skirt/skirt_type = skirt
 		skirts[initial(skirt_type.name)] = skirt_type
 	gear_tweaks += new/datum/gear_tweak/path(sortAssoc(skirts))
@@ -181,7 +183,7 @@
 /datum/gear/uniform/job_turtle/medical
 	display_name = "turtleneck, medical"
 	path = /obj/item/clothing/under/rank/medical/turtleneck
-	allowed_roles = list("Chief Medical Officer", "Paramedic", "Medical Doctor", "Psychologist", "Search and Rescue", "Chemist")
+	allowed_roles = list("Chief Medical Officer", "Paramedic", "Medical Doctor", "Psychiatrist", "Search and Rescue", "Chemist")
 
 /datum/gear/uniform/jeans_qm
 	display_name = "jeans, QM"
@@ -223,6 +225,8 @@
 	..()
 	var/list/msuits = list()
 	for(var/msuit in typesof(/obj/item/clothing/under/suit_jacket))
+		if(msuit in typesof(/obj/item/clothing/under/suit_jacket/female/fluff))	//VOREStation addition
+			continue															//VOREStation addition
 		var/obj/item/clothing/suit/msuit_type = msuit
 		msuits[initial(msuit_type.name)] = msuit_type
 	gear_tweaks += new/datum/gear_tweak/path(sortAssoc(msuits))
@@ -502,3 +506,54 @@
 	display_name = "plain ascetic garb"
 	path = /obj/item/clothing/under/ascetic
 
+/datum/gear/uniform/pleated
+	display_name = "pleated skirt"
+	path = /obj/item/clothing/under/skirt/pleated
+
+/datum/gear/uniform/pleated/New()
+	..()
+	gear_tweaks = list(gear_tweak_free_color_choice)
+
+/datum/gear/uniform/lilacdress
+	display_name = "lilac dress"
+	path = /obj/item/clothing/under/dress/lilacdress
+
+/datum/gear/uniform/polka
+	display_name = "polka dot dress"
+	path = /obj/item/clothing/under/dress/polka
+
+/datum/gear/uniform/twistfront
+	display_name = "twistfront crop dress"
+	path = /obj/item/clothing/under/dress/twistfront
+
+/datum/gear/uniform/cropdress
+	display_name = "crop dress"
+	path = /obj/item/clothing/under/dress/cropdress
+
+/datum/gear/uniform/vneckdress
+	display_name = "v-neck dress"
+	path = /obj/item/clothing/under/dress/vneck
+
+/datum/gear/uniform/bluedress
+	display_name = "blue dress"
+	path = /obj/item/clothing/under/dress/bluedress
+
+/datum/gear/uniform/wench
+	display_name = "wench's dress"
+	path = /obj/item/clothing/under/dress/wench
+
+/datum/gear/uniform/littleblackdress
+	display_name = "little black dress"
+	path = /obj/item/clothing/under/dress/littleblackdress
+
+/datum/gear/uniform/pinktutu
+	display_name = "pink tutu"
+	path = /obj/item/clothing/under/dress/pinktutu
+
+/datum/gear/uniform/festivedress
+	display_name = "festive dress"
+	path = /obj/item/clothing/under/dress/festivedress
+
+/datum/gear/uniform/haltertop
+	display_name = "halter top"
+	path = /obj/item/clothing/under/haltertop

@@ -102,18 +102,18 @@
 	else
 		if (src.paralysis || src.stunned || src.weakened || (status_flags & FAKEDEATH)) //Stunned etc.
 			if (src.stunned > 0)
-				src.stat = 0
+				src.set_stat(CONSCIOUS)
 			if (src.weakened > 0)
 				src.lying = 0
-				src.stat = 0
+				src.set_stat(CONSCIOUS)
 			if (src.paralysis > 0)
 				src.blinded = 0
 				src.lying = 0
-				src.stat = 0
+				src.set_stat(CONSCIOUS)
 
 		else
 			src.lying = 0
-			src.stat = 0
+			src.set_stat(CONSCIOUS)
 
 	if (src.stuttering) src.stuttering = 0
 
@@ -149,7 +149,7 @@
 		nutrition = 0
 		adjustToxLoss(rand(1,3))
 		if (client && prob(5))
-			src << "<span class='danger'>You are starving!</span>"
+			to_chat(src, "<span class='danger'>You are starving!</span>")
 
 	else if (nutrition >= get_grow_nutrition() && amount_grown < 10)
 		nutrition -= 20

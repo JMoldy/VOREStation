@@ -158,10 +158,16 @@
 					reagent_volumes[T] = min(reagent_volumes[T] + 1, volume)
 	return 1
 
+/obj/item/weapon/reagent_containers/borghypo/hound/lost
+	name = "Hound hypospray"
+	desc = "An advanced chemical synthesizer and injection system utilizing carrier's reserves."
+	reagent_ids = list("tricordrazine", "inaprovaline", "bicaridine", "dexalin", "anti_toxin", "tramadol", "spaceacillin")
+
+
 //Tongue stuff
 /obj/item/device/dogborg/tongue
 	name = "synthetic tongue"
-	desc = "Useful for slurping mess off the floor before affectionally licking the crew members in the face."
+	desc = "Useful for slurping mess off the floor before affectionately licking the crew members in the face."
 	icon = 'icons/mob/dogborg_vr.dmi'
 	icon_state = "synthtongue"
 	hitsound = 'sound/effects/attackblob.ogg'
@@ -176,9 +182,9 @@
 	if(!..(user, 1))
 		return
 	if(water.energy)
-		user <<"<span class='notice'>[src] is wet. Just like it should be.</span>"
+		to_chat(user, "<span class='notice'>[src] is wet. Just like it should be.</span>")
 	if(water.energy < 5)
-		user <<"<span class='notice'>[src] is dry.</span>"
+		to_chat(user, "<span class='notice'>[src] is dry.</span>")
 
 /obj/item/device/dogborg/tongue/attack_self(mob/user)
 	var/mob/living/silicon/robot.R = user
@@ -191,7 +197,7 @@
 			icon_state = "syndietongue"
 		else
 			name = "synthetic tongue"
-			desc = "Useful for slurping mess off the floor before affectionally licking the crew members in the face."
+			desc = "Useful for slurping mess off the floor before affectionately licking the crew members in the face."
 			icon = 'icons/mob/dogborg_vr.dmi'
 			icon_state = "synthtongue"
 		update_icon()
@@ -261,7 +267,7 @@
 			playsound(loc, 'sound/weapons/Egloves.ogg', 50, 1, -1)
 			R.cell.charge -= 666
 		else
-			user.visible_message("<span class='notice'>\the [user] affectionally licks all over \the [target]'s face!</span>", "<span class='notice'>You affectionally lick all over \the [target]'s face!</span>")
+			user.visible_message("<span class='notice'>\the [user] affectionately licks all over \the [target]'s face!</span>", "<span class='notice'>You affectionately lick all over \the [target]'s face!</span>")
 			playsound(src.loc, 'sound/effects/attackblob.ogg', 50, 1)
 			water.use_charge(5)
 			var/mob/living/carbon/human/H = target
@@ -405,12 +411,12 @@
 
 	last_special = world.time + 10
 	status_flags |= LEAPING
-	pixel_y = 10
+	pixel_y = pixel_y + 10
 
 	src.visible_message("<span class='danger'>\The [src] leaps at [T]!</span>")
 	src.throw_at(get_step(get_turf(T),get_turf(src)), 4, 1, src)
 	playsound(src.loc, 'sound/mecha/mechstep2.ogg', 50, 1)
-	pixel_y = 0
+	pixel_y = default_pixel_y
 	cell.charge -= 750
 
 	sleep(5)
@@ -429,5 +435,5 @@
 	var/armor_block = run_armor_check(T, "melee")
 	var/armor_soak = get_armor_soak(T, "melee")
 	T.apply_damage(20, HALLOSS,, armor_block, armor_soak)
-	if(prob(33))
-		T.apply_effect(3, WEAKEN, armor_block)
+	if(prob(75)) //75% chance to stun for 5 seconds, really only going to be 4 bcus click cooldown+animation.
+		T.apply_effect(5, WEAKEN, armor_block)

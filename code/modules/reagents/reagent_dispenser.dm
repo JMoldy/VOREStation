@@ -69,7 +69,7 @@
 /obj/structure/reagent_dispensers/watertank
 	name = "watertank"
 	desc = "A watertank."
-	icon = 'icons/obj/objects.dmi'
+	icon = 'icons/obj/objects_vr.dmi' //VOREStation Edit
 	icon_state = "watertank"
 	amount_per_transfer_from_this = 10
 
@@ -89,7 +89,7 @@
 /obj/structure/reagent_dispensers/fueltank
 	name = "fueltank"
 	desc = "A fueltank."
-	icon = 'icons/obj/objects.dmi'
+	icon = 'icons/obj/objects_vr.dmi' //VOREStation Edit
 	icon_state = "weldtank"
 	amount_per_transfer_from_this = 10
 	var/modded = 0
@@ -98,6 +98,29 @@
 /obj/structure/reagent_dispensers/fueltank/Initialize()
 	. = ..()
 	reagents.add_reagent("fuel",1000)
+
+//VOREStation Add
+/obj/structure/reagent_dispensers/fueltank/high
+	name = "high-capacity fuel tank"
+	desc = "A highly-pressurized fuel tank made to hold vast amounts of fuel."
+	icon_state = "weldtank_high"
+
+/obj/structure/reagent_dispensers/fueltank/high/Initialize()
+	. = ..()
+	reagents.add_reagent("fuel",4000)
+
+/obj/structure/reagent_dispensers/foam
+	name = "foamtank"
+	desc = "A foam tank."
+	icon = 'icons/obj/objects_vr.dmi' //VOREStation Edit
+	icon_state = "foamtank"
+	amount_per_transfer_from_this = 10
+
+/obj/structure/reagent_dispensers/foam/Initialize()
+	. = ..()
+	reagents.add_reagent("firefoam",1000)
+//VOREStation Add End
+
 
 /obj/structure/reagent_dispensers/fueltank/examine(mob/user)
 	if(!..(user, 2))
@@ -158,7 +181,7 @@
 			message_admins("[key_name_admin(Proj.firer)] shot fueltank at [loc.loc.name] ([loc.x],[loc.y],[loc.z]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[loc.x];Y=[loc.y];Z=[loc.z]'>JMP</a>).")
 			log_game("[key_name(Proj.firer)] shot fueltank at [loc.loc.name] ([loc.x],[loc.y],[loc.z]).")
 
-		if(!istype(Proj ,/obj/item/projectile/beam/lastertag) && !istype(Proj ,/obj/item/projectile/beam/practice) )
+		if(!istype(Proj ,/obj/item/projectile/beam/lasertag) && !istype(Proj ,/obj/item/projectile/beam/practice) )
 			explode()
 
 /obj/structure/reagent_dispensers/fueltank/ex_act()
@@ -331,6 +354,7 @@
 		return
 
 /obj/structure/reagent_dispensers/water_cooler/update_icon()
+	/* VOREStation Lazy Fix for Right Now
 	icon_state = "water_cooler"
 	overlays.Cut()
 	var/image/I
@@ -343,6 +367,7 @@
 	if(cups)
 		I = image(icon, "water_cooler_cups")
 		overlays += I
+	*/
 	return
 
 /obj/structure/reagent_dispensers/beerkeg

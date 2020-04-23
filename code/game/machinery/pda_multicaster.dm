@@ -1,12 +1,12 @@
 /obj/machinery/pda_multicaster
 	name = "\improper PDA multicaster"
 	desc = "This machine mirrors messages sent to it to specific departments."
-	icon = 'icons/obj/stationobjs.dmi'
-	icon_state = "controller"
+	icon = 'icons/obj/stationobjs_vr.dmi' //VOREStation Edit
+	icon_state = "pdamulti" //VOREStation Edit
 	density = 1
 	anchored = 1
 	circuit = /obj/item/weapon/circuitboard/telecomms/pda_multicaster
-	use_power = 1
+	use_power = USE_POWER_IDLE
 	idle_power_usage = 750
 	var/on = 1		// If we're currently active,
 	var/toggle = 1	// If we /should/ be active or not,
@@ -43,7 +43,7 @@
 	if(on)
 		icon_state = initial(icon_state)
 	else
-		icon_state = "[initial(icon_state)]-p"
+		icon_state = "[initial(icon_state)]_off" //VOREStation Edit
 
 /obj/machinery/pda_multicaster/attackby(obj/item/I, mob/user)
 	if(I.is_screwdriver())

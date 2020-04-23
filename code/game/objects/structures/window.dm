@@ -47,7 +47,7 @@
 		else
 			to_chat(user, "<span class='notice'>There is a thick layer of silicate covering it.</span>")
 
-/obj/structure/window/proc/take_damage(var/damage = 0,  var/sound_effect = 1)
+/obj/structure/window/take_damage(var/damage = 0,  var/sound_effect = 1)
 	var/initialhealth = health
 
 	if(silicate)
@@ -442,6 +442,13 @@
 	//this way it will only update full-tile ones
 	overlays.Cut()
 	if(!is_fulltile())
+		// Rotate the sprite somewhat so non-fulltiled windows can be seen as needing repair.
+		var/full_tilt_degrees = 15
+		var/tilt_to_apply = abs((health / maxhealth) - 1)
+		if(tilt_to_apply && prob(50))
+			tilt_to_apply = -tilt_to_apply
+		adjust_rotation(LERP(0, full_tilt_degrees, tilt_to_apply))
+
 		icon_state = "[basestate]"
 		return
 	var/list/dirs = list()

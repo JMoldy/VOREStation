@@ -44,7 +44,14 @@
 			to_chat(user, "<span class='danger'>You cannot inject a robotic limb.</span>")
 			return
 
-		if(!H.stat)
+		//VOREStation Add Start - Adds Prototype Hypo functionality
+		if(H != user && prototype)
+			to_chat(user, "<span class='notice'>You begin injecting [H] with \the [src].</span>")
+			to_chat(H, "<span class='danger'> [user] is trying to inject you with \the [src]!</span>")
+			if(!do_after(user, 30, H))
+				return
+		//VOREstation Add End
+		else if(!H.stat && !prototype) //VOREStation Edit
 			if(H != user)
 				if(H.a_intent != I_HELP)
 					to_chat(user, "<span class='notice'>[H] is resisting your attempt to inject them with \the [src].</span>")
@@ -96,7 +103,7 @@
 			loaded_vial.update_icon()
 			user.put_in_hands(loaded_vial)
 			loaded_vial = null
-			user << "<span class='notice'>You remove the vial from the [src].</span>"
+			to_chat(user, "<span class='notice'>You remove the vial from the [src].</span>")
 			update_icon()
 			playsound(src.loc, 'sound/weapons/flipblade.ogg', 50, 1)
 			return
@@ -122,7 +129,7 @@
 			update_icon()
 			playsound(src.loc, 'sound/weapons/empty.ogg', 50, 1)
 		else
-			user << "<span class='notice'>\The [src] already has a vial.</span>"
+			to_chat(user, "<span class='notice'>\The [src] already has a vial.</span>")
 	else
 		..()
 

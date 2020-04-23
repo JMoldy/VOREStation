@@ -50,6 +50,7 @@ var/global/list/grub_machine_overlays = list()
 
 /mob/living/simple_mob/animal/solargrub_larva/New()
 	..()
+	existing_solargrubs += src
 	powermachine = new(src)
 	sparks = new(src)
 	sparks.set_up()
@@ -62,6 +63,7 @@ var/global/list/grub_machine_overlays = list()
 	return ..()
 
 /mob/living/simple_mob/animal/solargrub_larva/Destroy()
+	existing_solargrubs -= src
 	QDEL_NULL(powermachine)
 	QDEL_NULL(sparks)
 	QDEL_NULL(machine_effect)
@@ -138,9 +140,10 @@ var/global/list/grub_machine_overlays = list()
 	sparks.start()
 	if(machine_effect)
 		QDEL_NULL(machine_effect)
-	set_AI_busy(FALSE)
 	ai_holder.target = null
 	powermachine.draining = 1
+	spawn(30)
+		set_AI_busy(FALSE)
 
 /mob/living/simple_mob/animal/solargrub_larva/proc/do_ventcrawl(var/obj/machinery/atmospherics/unary/vent_pump/vent)
 	if(!vent)
@@ -220,7 +223,7 @@ var/global/list/grub_machine_overlays = list()
 		actual_targets += M
 	return actual_targets
 
-/datum/ai_holder/simple_mob/solargrub_larva/can_attack(atom/movable/the_target)
+/datum/ai_holder/simple_mob/solargrub_larva/can_attack(atom/movable/the_target, var/vision_required = TRUE)
 	.=..()
 	var/obj/machinery/M = the_target
 	if(!istype(M))

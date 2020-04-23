@@ -16,13 +16,17 @@
 	var/moved_recently = 0
 	var/mob/pulledby = null
 	var/item_state = null // Used to specify the item state for the on-mob overlays.
-	var/icon_scale = 1 // Used to scale icons up or down in update_transform().
+	var/icon_scale_x = 1 // Used to scale icons up or down horizonally in update_transform().
+	var/icon_scale_y = 1 // Used to scale icons up or down vertically in update_transform().
 	var/icon_rotation = 0 // Used to rotate icons in update_transform()
 	var/old_x = 0
 	var/old_y = 0
 	var/datum/riding/riding_datum //VOREStation Add - Moved from /obj/vehicle
 	var/does_spin = TRUE // Does the atom spin when thrown (of course it does :P)
 	var/movement_type = NONE
+	
+	var/cloaked = FALSE //If we're cloaked or not
+	var/image/cloaked_selfimage //The image we use for our client to let them see where we are
 
 /atom/movable/Destroy()
 	. = ..()
@@ -45,7 +49,7 @@
 	QDEL_NULL(riding_datum) //VOREStation Add
 
 /atom/movable/vv_edit_var(var_name, var_value)
-	if(GLOB.VVpixelmovement[var_name])			//Pixel movement is not yet implemented, changing this will break everything irreversibly.
+	if(var_name in GLOB.VVpixelmovement)			//Pixel movement is not yet implemented, changing this will break everything irreversibly.
 		return FALSE
 	return ..()
 
@@ -67,40 +71,51 @@
 
 	if(!newloc.Enter(src, src.loc))
 		return
+
+	if(!check_multi_tile_move_density_dir(direct, locs))	// We're big, and we can't move that way.
+		return
+
 	// Past this is the point of no return
-	var/atom/oldloc = loc
-	var/area/oldarea = get_area(oldloc)
-	var/area/newarea = get_area(newloc)
-	loc = newloc
-	. = TRUE
-	oldloc.Exited(src, newloc)
-	if(oldarea != newarea)
-		oldarea.Exited(src, newloc)
+	if(!locs || locs.len <= 1)	// We're not a multi-tile object.
+		var/atom/oldloc = loc
+		var/area/oldarea = get_area(oldloc)
+		var/area/newarea = get_area(newloc)
+		loc = newloc
+		. = TRUE
+		oldloc.Exited(src, newloc)
+		if(oldarea != newarea)
+			oldarea.Exited(src, newloc)
 
-	for(var/i in oldloc)
-		if(i == src) // Multi tile objects
-			continue
-		var/atom/movable/thing = i
-		thing.Uncrossed(src)
+		for(var/i in oldloc)
+			if(i == src) // Multi tile objects
+				continue
+			var/atom/movable/thing = i
+			thing.Uncrossed(src)
 
-	newloc.Entered(src, oldloc)
-	if(oldarea != newarea)
-		newarea.Entered(src, oldloc)
+		newloc.Entered(src, oldloc)
+		if(oldarea != newarea)
+			newarea.Entered(src, oldloc)
 
-	for(var/i in loc)
-		if(i == src) // Multi tile objects
-			continue
-		var/atom/movable/thing = i
-		thing.Crossed(src)
+		for(var/i in loc)
+			if(i == src) // Multi tile objects
+				continue
+			var/atom/movable/thing = i
+			thing.Crossed(src)
+
+	else if(newloc)	// We're a multi-tile object.
+		. = doMove(newloc)
+
 //
 ////////////////////////////////////////
 
-/atom/movable/Move(atom/newloc, direct)
+/atom/movable/Move(atom/newloc, direct = 0)
 	if(!loc || !newloc)
 		return FALSE
 	var/atom/oldloc = loc
 
 	if(loc != newloc)
+		if(!direct)
+			direct = get_dir(oldloc, newloc)
 		if (!(direct & (direct - 1))) //Cardinal move
 			. = ..()
 		else //Diagonal move, split it into cardinal moves
@@ -195,6 +210,13 @@
 /atom/movable/Cross(atom/movable/AM)
 	. = TRUE
 	return CanPass(AM, loc)
+
+/atom/movable/CanPass(atom/movable/mover, turf/target)
+	. = ..()
+	if(locs && locs.len >= 2)	// If something is standing on top of us, let them pass.
+		if(mover.loc in locs)
+			. = TRUE
+	return .
 
 //oldloc = old location on atom, inserted when forceMove is called and ONLY when forceMove is called!
 /atom/movable/Crossed(atom/movable/AM, oldloc)
@@ -434,36 +456,39 @@
 	if(z in using_map.sealed_levels)
 		return
 
-	if(config.use_overmap)
+	if(using_map.use_overmap)
 		overmap_spacetravel(get_turf(src), src)
 		return
 
 	var/move_to_z = src.get_transit_zlevel()
 	if(move_to_z)
-		z = move_to_z
+		var/new_z = move_to_z
+		var/new_x
+		var/new_y
 
 		if(x <= TRANSITIONEDGE)
-			x = world.maxx - TRANSITIONEDGE - 2
-			y = rand(TRANSITIONEDGE + 2, world.maxy - TRANSITIONEDGE - 2)
+			new_x = world.maxx - TRANSITIONEDGE - 2
+			new_y = rand(TRANSITIONEDGE + 2, world.maxy - TRANSITIONEDGE - 2)
 
 		else if (x >= (world.maxx - TRANSITIONEDGE + 1))
-			x = TRANSITIONEDGE + 1
-			y = rand(TRANSITIONEDGE + 2, world.maxy - TRANSITIONEDGE - 2)
+			new_x = TRANSITIONEDGE + 1
+			new_y = rand(TRANSITIONEDGE + 2, world.maxy - TRANSITIONEDGE - 2)
 
 		else if (y <= TRANSITIONEDGE)
-			y = world.maxy - TRANSITIONEDGE -2
-			x = rand(TRANSITIONEDGE + 2, world.maxx - TRANSITIONEDGE - 2)
+			new_y = world.maxy - TRANSITIONEDGE -2
+			new_x = rand(TRANSITIONEDGE + 2, world.maxx - TRANSITIONEDGE - 2)
 
 		else if (y >= (world.maxy - TRANSITIONEDGE + 1))
-			y = TRANSITIONEDGE + 1
-			x = rand(TRANSITIONEDGE + 2, world.maxx - TRANSITIONEDGE - 2)
+			new_y = TRANSITIONEDGE + 1
+			new_x = rand(TRANSITIONEDGE + 2, world.maxx - TRANSITIONEDGE - 2)
 
 		if(ticker && istype(ticker.mode, /datum/game_mode/nuclear)) //only really care if the game mode is nuclear
 			var/datum/game_mode/nuclear/G = ticker.mode
 			G.check_nuke_disks()
 
-		spawn(0)
-			if(loc) loc.Entered(src)
+		var/turf/T = locate(new_x, new_y, new_z)
+		if(istype(T))
+			forceMove(T)
 
 //by default, transition randomly to another zlevel
 /atom/movable/proc/get_transit_zlevel()
@@ -476,13 +501,18 @@
 
 /atom/movable/proc/update_transform()
 	var/matrix/M = matrix()
-	M.Scale(icon_scale)
+	M.Scale(icon_scale_x, icon_scale_y)
 	M.Turn(icon_rotation)
 	src.transform = M
 
 // Use this to set the object's scale.
-/atom/movable/proc/adjust_scale(new_scale)
-	icon_scale = new_scale
+/atom/movable/proc/adjust_scale(new_scale_x, new_scale_y)
+	if(isnull(new_scale_y))
+		new_scale_y = new_scale_x
+	if(new_scale_x != 0)
+		icon_scale_x = new_scale_x
+	if(new_scale_y != 0)
+		icon_scale_y = new_scale_y
 	update_transform()
 
 /atom/movable/proc/adjust_rotation(new_rotation)
@@ -492,3 +522,94 @@
 // Called when touching a lava tile.
 /atom/movable/proc/lava_act()
 	fire_act(null, 10000, 1000)
+
+
+// Procs to cloak/uncloak
+/atom/movable/proc/cloak()
+	if(cloaked)
+		return FALSE
+	cloaked = TRUE
+	. = TRUE // We did work
+
+	var/static/animation_time = 1 SECOND
+	cloaked_selfimage = get_cloaked_selfimage()
+
+	//Wheeee
+	cloak_animation(animation_time)
+
+	//Needs to be last so people can actually see the effect before we become invisible
+	if(cloaked) // Ensure we are still cloaked after the animation delay
+		plane = CLOAKED_PLANE
+
+/atom/movable/proc/uncloak()
+	if(!cloaked)
+		return FALSE
+	cloaked = FALSE
+	. = TRUE // We did work
+
+	var/static/animation_time = 1 SECOND
+	QDEL_NULL(cloaked_selfimage)
+
+	//Needs to be first so people can actually see the effect, so become uninvisible first
+	plane = initial(plane)
+
+	//Oooooo
+	uncloak_animation(animation_time)
+
+
+// Animations for cloaking/uncloaking
+/atom/movable/proc/cloak_animation(var/length = 1 SECOND)
+	//Save these
+	var/initial_alpha = alpha
+	
+	//Animate alpha fade
+	animate(src, alpha = 0, time = length)
+
+	//Animate a cloaking effect
+	var/our_filter = filters.len+1 //Filters don't appear to have a type that can be stored in a var and accessed. This is how the DM reference does it.
+	filters += filter(type="wave", x = 0, y = 16, size = 0, offset = 0, flags = WAVE_SIDEWAYS)
+	animate(filters[our_filter], offset = 1, size = 8, time = length, flags = ANIMATION_PARALLEL)
+
+	//Wait for animations to finish
+	sleep(length+5)
+
+	//Remove those
+	filters -= filter(type="wave", x = 0, y = 16, size = 8, offset = 1, flags = WAVE_SIDEWAYS)
+
+	//Back to original alpha
+	alpha = initial_alpha
+
+/atom/movable/proc/uncloak_animation(var/length = 1 SECOND)
+	//Save these
+	var/initial_alpha = alpha
+
+	//Put us back to normal, but no alpha
+	alpha = 0
+
+	//Animate alpha fade up
+	animate(src, alpha = initial_alpha, time = length)
+
+	//Animate a cloaking effect
+	var/our_filter = filters.len+1 //Filters don't appear to have a type that can be stored in a var and accessed. This is how the DM reference does it.
+	filters += filter(type="wave", x=0, y = 16, size = 8, offset = 1, flags = WAVE_SIDEWAYS)
+	animate(filters[our_filter], offset = 0, size = 0, time = length, flags = ANIMATION_PARALLEL)
+
+	//Wait for animations to finish
+	sleep(length+5)
+
+	//Remove those
+	filters -= filter(type="wave", x=0, y = 16, size = 0, offset = 0, flags = WAVE_SIDEWAYS)
+
+
+// So cloaked things can see themselves, if necessary
+/atom/movable/proc/get_cloaked_selfimage()
+	var/icon/selficon = icon(icon, icon_state)
+	selficon.MapColors(0,0,0, 0,0,0, 0,0,0, 1,1,1) //White
+	var/image/selfimage = image(selficon)
+	selfimage.color = "#0000FF"
+	selfimage.alpha = 100
+	selfimage.layer = initial(layer)
+	selfimage.plane = initial(plane)
+	selfimage.loc = src
+
+	return selfimage

@@ -31,17 +31,17 @@
 				var/mob/living/carbon/C = usr
 				C.toggle_throw_mode()
 			else
-				usr << "<font color='red'>This mob type cannot throw items.</font>"
+				to_chat(usr, "<font color='red'>This mob type cannot throw items.</font>")
 			return
 		if(NORTHWEST)
 			if(isliving(usr))
 				var/mob/living/carbon/C = usr
 				if(!C.get_active_hand())
-					usr << "<font color='red'>You have nothing to drop in your hand.</font>"
+					to_chat(usr, "<font color='red'>You have nothing to drop in your hand.</font>")
 					return
 				drop_item()
 			else
-				usr << "<font color='red'>This mob type cannot drop items.</font>"
+				to_chat(usr, "<font color='red'>This mob type cannot drop items.</font>")
 			return
 
 //This gets called when you press the delete button.
@@ -49,7 +49,7 @@
 	set hidden = 1
 
 	if(!usr.pulling)
-		usr << "<font color='blue'>You are not pulling anything.</font>"
+		to_chat(usr, "<font color='blue'>You are not pulling anything.</font>")
 		return
 	usr.stop_pulling()
 
@@ -84,7 +84,7 @@
 
 /client/verb/drop_item()
 	set hidden = 1
-	if(!isrobot(mob) && mob.stat == CONSCIOUS && isturf(mob.loc))
+	if(!isrobot(mob) && mob.stat == CONSCIOUS && (isturf(mob.loc) || isbelly(mob.loc)))	// VOREStation Edit: dropping in bellies
 		return mob.drop_item()
 	return
 
@@ -185,13 +185,13 @@
 			for(var/mob/M in range(mob, 1))
 				if(M.pulling == mob)
 					if(!M.restrained() && M.stat == 0 && M.canmove && mob.Adjacent(M))
-						src << "<font color='blue'>You're restrained! You can't move!</font>"
+						to_chat(src, "<font color='blue'>You're restrained! You can't move!</font>")
 						return 0
 					else
 						M.stop_pulling()
 
 		if(mob.pinned.len)
-			src << "<font color='blue'>You're pinned to a wall by [mob.pinned[1]]!</font>"
+			to_chat(src, "<font color='blue'>You're pinned to a wall by [mob.pinned[1]]!</font>")
 			return 0
 
 		mob.move_delay = world.time//set move delay
@@ -212,6 +212,10 @@
 			//drunk driving
 			if(mob.confused && prob(20)) //vehicles tend to keep moving in the same direction
 				direct = turn(direct, pick(90, -90))
+			if(istype(mob.buckled, /mob)) //VOREStation Edit to prevent mob riding speed exploit.
+				var/mob/M = mob.buckled
+				if(M.move_delay > mob.move_delay - 10)
+					return
 			return mob.buckled.relaymove(mob,direct)
 
 		if(istype(mob.machine, /obj/machinery))
@@ -314,8 +318,10 @@
 	switch(mob.incorporeal_move)
 		if(1)
 			var/turf/T = get_step(mob, direct)
+			if(!T)
+				return
 			if(mob.check_holy(T))
-				mob << "<span class='warning'>You cannot get past holy grounds while you are in this plane of existence!</span>"
+				to_chat(mob, "<span class='warning'>You cannot get past holy grounds while you are in this plane of existence!</span>")
 				return
 			else
 				mob.forceMove(get_step(mob, direct))
@@ -383,6 +389,9 @@
 ///Return 1 for movement 0 for none
 /mob/proc/Process_Spacemove(var/check_drift = 0)
 
+	if(is_incorporeal())
+		return
+
 	if(!Check_Dense_Object()) //Nothing to push off of so end here
 		update_floating(0)
 		return 0
@@ -394,7 +403,7 @@
 
 	//Check to see if we slipped
 	if(prob(Process_Spaceslipping(5)) && !buckled)
-		src << "<font color='blue'><B>You slipped!</B></font>"
+		to_chat(src, "<font color='blue'><B>You slipped!</B></font>")
 		src.inertia_dir = src.last_move
 		step(src, src.inertia_dir)
 		return 0

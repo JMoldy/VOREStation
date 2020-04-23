@@ -43,7 +43,7 @@ the artifact triggers the rage.
 /datum/modifier/berserk
 	name = "berserk"
 	desc = "You are filled with an overwhelming rage."
-	client_color = "#FF0000" // Make everything red!
+	client_color = "#FF5555" // Make everything red!
 	mob_overlay_state = "berserk"
 
 	on_created_text = "<span class='critical'>You feel an intense and overwhelming rage overtake you as you go berserk!</span>"
@@ -56,7 +56,8 @@ the artifact triggers the rage.
 	outgoing_melee_damage_percent = 1.5		// 50% more damage from melee.
 	max_health_percent = 1.5				// More health as a buffer, however the holder might fall into crit after this expires if they're mortally wounded.
 	disable_duration_percent = 0.25			// Disables only last 25% as long.
-	icon_scale_percent = 1.2				// Look scarier.
+	icon_scale_x_percent = 1.2				// Look scarier.
+	icon_scale_y_percent = 1.2
 	pain_immunity = TRUE					// Avoid falling over from shock (at least until it expires).
 
 	// The less good stuff.
@@ -111,16 +112,18 @@ the artifact triggers the rage.
 			var/mob/living/carbon/human/H = holder
 			H.shock_stage = last_shock_stage
 
-/datum/modifier/berserk/can_apply(var/mob/living/L)
+/datum/modifier/berserk/can_apply(var/mob/living/L, var/suppress_failure = FALSE)
 	if(L.stat)
-		to_chat(L, "<span class='warning'>You can't be unconscious or dead to berserk.</span>")
+		if(!suppress_failure)
+			to_chat(L, "<span class='warning'>You can't be unconscious or dead to berserk.</span>")
 		return FALSE // It would be weird to see a dead body get angry all of a sudden.
 
 	if(!L.is_sentient())
 		return FALSE // Drones don't feel anything.
 
 	if(L.has_modifier_of_type(/datum/modifier/berserk_exhaustion))
-		to_chat(L, "<span class='warning'>You recently berserked, and cannot do so again while exhausted.</span>")
+		if(!suppress_failure)
+			to_chat(L, "<span class='warning'>You recently berserked, and cannot do so again while exhausted.</span>")
 		return FALSE // On cooldown.
 
 	if(L.isSynthetic())
@@ -134,7 +137,8 @@ the artifact triggers the rage.
 			return FALSE // Happy trees aren't affected by blood rages.
 
 	if(L.nutrition < nutrition_cost)
-		to_chat(L, "<span class='warning'>You are too hungry to berserk.</span>")
+		if(!suppress_failure)
+			to_chat(L, "<span class='warning'>You are too hungry to berserk.</span>")
 		return FALSE // Too hungry to enrage.
 
 	return ..()
@@ -181,6 +185,31 @@ the artifact triggers the rage.
 	accuracy_dispersion = 3		// Ditto.
 	evasion = -45				// Too angry to dodge.
 
+// Speedy, but not hasted.
+/datum/modifier/sprinting
+	name = "sprinting"
+	desc = "You are filled with energy!"
+
+	on_created_text = "<span class='warning'>You feel a surge of energy!</span>"
+	on_expired_text = "<span class='notice'>The energy high dies out.</span>"
+	stacks = MODIFIER_STACK_EXTEND
+
+	slowdown = -1
+	disable_duration_percent = 0.8
+
+// Speedy, but not berserked.
+/datum/modifier/melee_surge
+	name = "melee surge"
+	desc = "You are filled with energy!"
+
+	on_created_text = "<span class='warning'>You feel a surge of energy!</span>"
+	on_expired_text = "<span class='notice'>The energy high dies out.</span>"
+	stacks = MODIFIER_STACK_ALLOWED
+
+	attack_speed_percent = 0.8
+	outgoing_melee_damage_percent = 1.1
+	disable_duration_percent = 0.8
+
 // Non-cult version of deep wounds.
 // Surprisingly, more dangerous.
 /datum/modifier/grievous_wounds
@@ -197,29 +226,6 @@ the artifact triggers the rage.
 	bleeding_rate_percent = 1.20	// 20% more bleeding.
 
 	accuracy_dispersion = 2			// A combination of fear and immense pain or damage reults in a twitching firing arm. Flee.
-
-
-
-
-// Ignition, but confined to the modifier system.
-// This makes it more predictable and thus, easier to balance.
-/datum/modifier/fire
-	name = "on fire"
-	desc = "You are on fire! You will be harmed until the fire goes out or you extinguish it with water."
-	mob_overlay_state = "on_fire"
-
-	on_created_text = "<span class='danger'>You combust into flames!</span>"
-	on_expired_text = "<span class='warning'>The fire starts to fade.</span>"
-	stacks = MODIFIER_STACK_ALLOWED // Multiple instances will hurt a lot.
-	var/damage_per_tick = 5
-
-/datum/modifier/fire/intense
-	mob_overlay_state = "on_fire_intense"
-	damage_per_tick = 10
-
-/datum/modifier/fire/tick()
-	holder.inflict_heat_damage(damage_per_tick)
-
 
 // Applied when near something very cold.
 // Reduces mobility, attack speed.
@@ -269,6 +275,20 @@ the artifact triggers the rage.
 		return FALSE
 	return TRUE
 
+/datum/modifier/poisoned/paralysis
+	desc = "You have poison inside of you. It will cause harm over a long span of time if not cured, and may cause temporary paralysis."
+	on_created_text = "<span class='warning'>You feel incredibly weak...</span>"
+	damage_per_tick = 0.75
+
+/datum/modifier/poisoned/paralysis/tick()
+	..()
+	if(prob(5))
+		holder.Paralyse(3)
+
+/datum/modifier/poisoned/paralysis/on_applied()
+	..()
+	holder.Paralyse(4)
+
 // Pulse modifier.
 /datum/modifier/false_pulse
 	name = "false pulse"
@@ -279,3 +299,92 @@ the artifact triggers the rage.
 	stacks = MODIFIER_STACK_EXTEND
 
 	pulse_set_level = PULSE_NORM
+
+/datum/modifier/slow_pulse
+	name = "slow pulse"
+	desc = "Your blood flows slower."
+
+	on_created_text = "<span class='notice'>You feel sluggish.</span>"
+	on_expired_text = "<span class='notice'>You feel energized.</span>"
+	stacks = MODIFIER_STACK_EXTEND
+
+	bleeding_rate_percent = 0.8
+
+	pulse_modifier = -1
+
+// Temperature Normalizer.
+/datum/modifier/homeothermic
+	name = "temperature resistance"
+	desc = "Your body normalizes to room temperature."
+
+	on_created_text = "<span class='notice'>You feel comfortable.</span>"
+	on_expired_text = "<span class='notice'>You feel.. still probably comfortable.</span>"
+	stacks = MODIFIER_STACK_EXTEND
+
+/datum/modifier/homeothermic/tick()
+	..()
+	holder.bodytemperature = round((holder.bodytemperature + T20C) / 2)
+
+/datum/modifier/exothermic
+	name = "heat resistance"
+	desc = "Your body lowers to room temperature."
+
+	on_created_text = "<span class='notice'>You feel comfortable.</span>"
+	on_expired_text = "<span class='notice'>You feel.. still probably comfortable.</span>"
+	stacks = MODIFIER_STACK_EXTEND
+
+/datum/modifier/exothermic/tick()
+	..()
+	if(holder.bodytemperature > T20C)
+		holder.bodytemperature = round((holder.bodytemperature + T20C) / 2)
+
+/datum/modifier/endothermic
+	name = "cold resistance"
+	desc = "Your body rises to room temperature."
+
+	on_created_text = "<span class='notice'>You feel comfortable.</span>"
+	on_expired_text = "<span class='notice'>You feel.. still probably comfortable.</span>"
+	stacks = MODIFIER_STACK_EXTEND
+
+/datum/modifier/endothermic/tick()
+	..()
+	if(holder.bodytemperature < T20C)
+		holder.bodytemperature = round((holder.bodytemperature + T20C) / 2)
+
+// Nullifies EMP.
+/datum/modifier/faraday
+	name = "EMP shielding"
+	desc = "You are covered in some form of faraday shielding. EMPs have no effect."
+	mob_overlay_state = "electricity"
+
+	on_created_text = "<span class='notice'>You feel a surge of energy, that fades to a calm tide.</span>"
+	on_expired_text = "<span class='warning'>You feel a longing for the flow of energy.</span>"
+	stacks = MODIFIER_STACK_EXTEND
+
+	emp_modifier = 5
+
+// Nullifies explosions.
+/datum/modifier/blastshield
+	name = "Blast Shielding"
+	desc = "You are protected from explosions somehow."
+	mob_overlay_state = "electricity"
+
+	on_created_text = "<span class='notice'>You feel a surge of energy, that fades to a stalwart hum.</span>"
+	on_expired_text = "<span class='warning'>You feel a longing for the flow of energy.</span>"
+	stacks = MODIFIER_STACK_EXTEND
+
+	explosion_modifier = 3
+
+// Kills on expiration.
+/datum/modifier/doomed
+	name = "Doomed"
+	desc = "You are doomed."
+
+	on_created_text = "<span class='notice'>You feel an overwhelming sense of dread.</span>"
+	on_expired_text = "<span class='warning'>You feel the life drain from your body.</span>"
+	stacks = MODIFIER_STACK_EXTEND
+
+/datum/modifier/doomed/on_expire()
+	if(holder.stat != DEAD)
+		holder.visible_message("<span class='alien'>\The [holder] collapses, the life draining from their body.</span>")
+		holder.death()

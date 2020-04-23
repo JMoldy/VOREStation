@@ -33,10 +33,12 @@
 
 /datum/frame/frame_types/computer
 	name = "Computer"
+	icon_override = 'icons/obj/stock_parts_vr.dmi' //VOREStation Edit
 	frame_class = FRAME_CLASS_COMPUTER
 
 /datum/frame/frame_types/machine
 	name = "Machine"
+	icon_override = 'icons/obj/stock_parts_vr.dmi' //VOREStation Edit
 	frame_class = FRAME_CLASS_MACHINE
 
 /datum/frame/frame_types/conveyor
@@ -90,11 +92,22 @@
 	circuit = /obj/item/weapon/circuitboard/recharger
 	frame_size = 3
 
+/datum/frame/frame_types/cell_charger
+	name = "Heavy-Duty Cell Charger"
+	frame_class = FRAME_CLASS_MACHINE
+	circuit = /obj/item/weapon/circuitboard/cell_charger
+	frame_size = 3
+
 /datum/frame/frame_types/grinder
 	name = "Grinder"
 	frame_class = FRAME_CLASS_MACHINE
 	circuit = /obj/item/weapon/circuitboard/grinder
 	frame_size = 3
+
+/datum/frame/frame_types/reagent_distillery
+	name = "Distillery"
+	frame_class = FRAME_CLASS_MACHINE
+	frame_size = 4
 
 /datum/frame/frame_types/display
 	name = "Display"
@@ -145,6 +158,7 @@
 
 /datum/frame/frame_types/air_alarm
 	name = "Air Alarm"
+	icon_override = 'icons/obj/monitors_vr.dmi' //VOREStation Edit - Matching frame.
 	frame_class = FRAME_CLASS_ALARM
 	frame_size = 2
 	frame_style = FRAME_STYLE_WALL
@@ -180,23 +194,23 @@
 //////////////////////////////
 
 /obj/structure/frame
-	anchored = 0
+	anchored = FALSE
 	name = "frame"
 	icon = 'icons/obj/stock_parts.dmi'
 	icon_state = "machine_0"
 	var/state = FRAME_PLACED
 	var/obj/item/weapon/circuitboard/circuit = null
-	var/need_circuit = 1
+	var/need_circuit = TRUE
 	var/datum/frame/frame_types/frame_type = new /datum/frame/frame_types/machine
 
-	var/list/components = null
+	var/list/components = list()
 	var/list/req_components = null
 	var/list/req_component_names = null
 
 /obj/structure/frame/computer //used for maps
 	frame_type = new /datum/frame/frame_types/computer
-	anchored = 1
-	density = 1
+	anchored = TRUE
+	density = TRUE
 
 /obj/structure/frame/examine(mob/user)
 	..()
@@ -248,14 +262,14 @@
 			pixel_y = (dir & 3)? (dir == NORTH ? -frame_type.y_offset : frame_type.y_offset) : 0
 
 		if(frame_type.circuit)
-			need_circuit = 0
+			need_circuit = FALSE
 			circuit = new frame_type.circuit(src)
 
 	if(frame_type.name == "Computer")
-		density = 1
+		density = TRUE
 
 	if(frame_type.frame_class == FRAME_CLASS_MACHINE)
-		density = 1
+		density = TRUE
 
 	update_icon()
 
@@ -265,7 +279,7 @@
 			to_chat(user, "<span class='notice'>You start to wrench the frame into place.</span>")
 			playsound(src.loc, P.usesound, 50, 1)
 			if(do_after(user, 20 * P.toolspeed))
-				anchored = 1
+				anchored = TRUE
 				if(!need_circuit && circuit)
 					state = FRAME_FASTENED
 					check_components()
@@ -278,7 +292,7 @@
 			playsound(src, P.usesound, 50, 1)
 			if(do_after(user, 20 * P.toolspeed))
 				to_chat(user, "<span class='notice'>You unfasten the frame.</span>")
-				anchored = 0
+				anchored = FALSE
 
 	else if(istype(P, /obj/item/weapon/weldingtool))
 		if(state == FRAME_PLACED)
@@ -418,6 +432,7 @@
 				circuit = null
 				if(frame_type.frame_class == FRAME_CLASS_MACHINE)
 					req_components = null
+				update_desc()
 
 		else if(state == FRAME_WIRED)
 			if(frame_type.frame_class == FRAME_CLASS_MACHINE)
@@ -487,27 +502,21 @@
 
 	else if(P.is_wirecutter())
 		if(state == FRAME_WIRED)
-			if(frame_type.frame_class == FRAME_CLASS_COMPUTER)
+			if( \
+				frame_type.frame_class == FRAME_CLASS_COMPUTER || \
+				frame_type.frame_class == FRAME_CLASS_DISPLAY || \
+				frame_type.frame_class == FRAME_CLASS_ALARM || \
+				frame_type.frame_class == FRAME_CLASS_MACHINE \
+			)
 				playsound(src, P.usesound, 50, 1)
-				to_chat(user, "<span class='notice'>You remove the cables.</span>")
-				state = FRAME_FASTENED
-				new /obj/item/stack/cable_coil(src.loc, 5)
-
-			else if(frame_type.frame_class == FRAME_CLASS_DISPLAY)
-				playsound(src, P.usesound, 50, 1)
-				to_chat(user, "<span class='notice'>You remove the cables.</span>")
-				state = FRAME_FASTENED
-				new /obj/item/stack/cable_coil(src.loc, 5)
-
-			else if(frame_type.frame_class == FRAME_CLASS_ALARM)
-				playsound(src, P.usesound, 50, 1)
-				to_chat(user, "<span class='notice'>You remove the cables.</span>")
-				state = FRAME_FASTENED
-				new /obj/item/stack/cable_coil(src.loc, 5)
-
-			else if(frame_type.frame_class == FRAME_CLASS_MACHINE)
-				playsound(src, P.usesound, 50, 1)
-				to_chat(user, "<span class='notice'>You remove the cables.</span>")
+				if (components.len == 0)
+					to_chat(user, "<span class='notice'>You remove the cables.</span>")
+				else
+					to_chat(user, "<span class='notice'>You remove the cables and components.</span>")
+					for(var/obj/item/weapon/W in components)
+						W.forceMove(src.loc)
+					check_components()
+					update_desc()
 				state = FRAME_FASTENED
 				new /obj/item/stack/cable_coil(src.loc, 5)
 
@@ -575,11 +584,11 @@
 	set src in oview(1)
 
 	if(usr.incapacitated())
-		return 0
+		return FALSE
 
 	if(anchored)
 		to_chat(usr, "It is fastened to the floor therefore you can't rotate it!")
-		return 0
+		return FALSE
 
 	src.set_dir(turn(src.dir, 90))
 
@@ -594,11 +603,11 @@
 	set src in oview(1)
 
 	if(usr.incapacitated())
-		return 0
+		return FALSE
 
 	if(anchored)
 		to_chat(usr, "It is fastened to the floor therefore you can't rotate it!")
-		return 0
+		return FALSE
 
 	src.set_dir(turn(src.dir, 270))
 

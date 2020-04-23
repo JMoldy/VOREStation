@@ -51,6 +51,9 @@
 	var/egg_type = /obj/effect/spider/eggcluster/small
 	var/web_type = /obj/effect/spider/stickyweb/dark
 
+/datum/ai_holder/simple_mob/melee/nurse_spider
+	mauling = TRUE		// The nurse puts mobs into webs by attacking, so it needs to attack in crit
+	handle_corpse = TRUE	// Lets the nurse wrap dead things
 
 /mob/living/simple_mob/animal/giant_spider/nurse/inject_poison(mob/living/L, target_zone)
 	..() // Inject the stoxin here.
@@ -252,7 +255,7 @@
 
 	return ..(targets)
 
-/datum/ai_holder/simple_mob/melee/nurse_spider/can_attack(atom/movable/the_target)
+/datum/ai_holder/simple_mob/melee/nurse_spider/can_attack(atom/movable/the_target, var/vision_required = TRUE)
 	. = ..()
 	if(!.) // Parent returned FALSE.
 		if(istype(the_target, /obj))

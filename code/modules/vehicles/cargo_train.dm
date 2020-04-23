@@ -1,7 +1,7 @@
 /obj/vehicle/train/engine
 	name = "cargo train tug"
 	desc = "A ridable electric car designed for pulling cargo trolleys."
-	icon = 'icons/obj/vehicles.dmi'
+	icon = 'icons/obj/vehicles_vr.dmi'	//VOREStation Edit
 	icon_state = "cargo_engine"
 	on = 0
 	powered = 1
@@ -26,7 +26,8 @@
 
 /obj/vehicle/train/trolley
 	name = "cargo train trolley"
-	icon = 'icons/obj/vehicles.dmi'
+	desc = "A large, flat platform made for putting things on. Or people."
+	icon = 'icons/obj/vehicles_vr.dmi'	//VOREStation Edit
 	icon_state = "cargo_trailer"
 	anchored = 0
 	passenger_allowed = 0
@@ -34,7 +35,7 @@
 
 	load_item_visible = 1
 	load_offset_x = 0
-	load_offset_y = 4
+	load_offset_y = 7		//VOREStation Edit
 	mob_offset_y = 8
 
 //-------------------------------------------
@@ -44,7 +45,7 @@
 	..()
 	cell = new /obj/item/weapon/cell/high(src)
 	key = new key_type(src)
-	var/image/I = new(icon = 'icons/obj/vehicles.dmi', icon_state = "cargo_engine_overlay", layer = src.layer + 0.2) //over mobs
+	var/image/I = new(icon = 'icons/obj/vehicles_vr.dmi', icon_state = "cargo_engine_overlay", layer = src.layer + 0.2) //over mobs		//VOREStation edit
 	overlays += I
 	turn_off()	//so engine verbs are correctly set
 
@@ -53,7 +54,7 @@
 		turn_off()
 		update_stats()
 		if(load && is_train_head())
-			load << "The drive motor briefly whines, then drones to a stop."
+			to_chat(load, "The drive motor briefly whines, then drones to a stop.")
 
 	if(is_train_head() && !on)
 		return 0
@@ -166,7 +167,7 @@
 
 	if(is_train_head() && istype(load, /mob/living/carbon/human))
 		var/mob/living/carbon/human/D = load
-		D << "<font color='red'><B>You ran over [H]!</B></font>"
+		to_chat(D, "<font color='red'><B>You ran over [H]!</B></font>")
 		visible_message("<B><font color='red'>\The [src] ran over [H]!</B></font>")
 		add_attack_logs(D,H,"Ran over with [src.name]")
 		attack_log += text("\[[time_stamp()]\] <font color='red'>ran over [H.name] ([H.ckey]), driven by [D.name] ([D.ckey])</font>")
@@ -197,8 +198,8 @@
 	if(!istype(usr, /mob/living/carbon/human))
 		return
 
-	user << "The power light is [on ? "on" : "off"].\nThere are[key ? "" : " no"] keys in the ignition."
-	user << "The charge meter reads [cell? round(cell.percent(), 0.01) : 0]%"
+	to_chat(user, "The power light is [on ? "on" : "off"].\nThere are[key ? "" : " no"] keys in the ignition.")
+	to_chat(user, "The charge meter reads [cell? round(cell.percent(), 0.01) : 0]%")
 
 /obj/vehicle/train/engine/verb/start_engine()
 	set name = "Start engine"
@@ -209,17 +210,17 @@
 		return
 
 	if(on)
-		usr << "The engine is already running."
+		to_chat(usr, "The engine is already running.")
 		return
 
 	turn_on()
 	if (on)
-		usr << "You start [src]'s engine."
+		to_chat(usr, "You start [src]'s engine.")
 	else
 		if(cell.charge < charge_use)
-			usr << "[src] is out of power."
+			to_chat(usr, "[src] is out of power.")
 		else
-			usr << "[src]'s engine won't start."
+			to_chat(usr, "[src]'s engine won't start.")
 
 /obj/vehicle/train/engine/verb/stop_engine()
 	set name = "Stop engine"
@@ -230,12 +231,12 @@
 		return
 
 	if(!on)
-		usr << "The engine is already stopped."
+		to_chat(usr, "The engine is already stopped.")
 		return
 
 	turn_off()
 	if (!on)
-		usr << "You stop [src]'s engine."
+		to_chat(usr, "You stop [src]'s engine.")
 
 /obj/vehicle/train/engine/verb/remove_key()
 	set name = "Remove key"
@@ -374,3 +375,17 @@
 		anchored = 0
 	else
 		anchored = 1
+
+// VOREStation Edit Start - Overlay stuff for the chair-like effect
+/obj/vehicle/train/engine/update_icon()
+	..()
+	overlays = null
+	var/image/O = image(icon = 'icons/obj/vehicles_vr.dmi', icon_state = "cargo_engine_overlay", dir = src.dir)
+	O.layer = FLY_LAYER
+	O.plane = MOB_PLANE
+	overlays += O
+
+/obj/vehicle/train/engine/set_dir()
+	..()
+	update_icon()
+// VOREStation Edit End - Overlay stuff for the chair-like effect

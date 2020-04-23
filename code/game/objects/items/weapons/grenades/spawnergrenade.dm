@@ -1,5 +1,5 @@
 /obj/item/weapon/grenade/spawnergrenade
-	desc = "It is set to detonate in 5 seconds. It will unleash unleash an unspecified anomaly into the vicinity."
+	desc = "It is set to detonate in 5 seconds. It will unleash an unspecified anomaly into the vicinity."
 	name = "delivery grenade"
 	icon = 'icons/obj/grenade.dmi'
 	icon_state = "delivery"
@@ -40,6 +40,19 @@
 
 /obj/item/weapon/grenade/spawnergrenade/manhacks/raider
 	spawner_type = /mob/living/simple_mob/mechanical/viscerator/raider
+
+/obj/item/weapon/grenade/spawnergrenade/manhacks/station
+	desc = "It is set to detonate in 5 seconds. It will deploy three weaponized survey drones."
+	deliveryamt = 3
+	spawner_type = /mob/living/simple_mob/mechanical/viscerator/station
+	origin_tech = list(TECH_MATERIAL = 3, TECH_MAGNET = 3, TECH_ILLEGAL = 1)
+
+/obj/item/weapon/grenade/spawnergrenade/ward
+	name = "sentry delivery grenade"
+	desc = "It is set to detonate in 5 seconds. It will deploy a single thermal-optic sentry drone."
+	spawner_type = /mob/living/simple_mob/mechanical/ward/monitor/crew
+	deliveryamt = 1
+	origin_tech = list(TECH_MATERIAL = 4, TECH_MAGNET = 3, TECH_BLUESPACE = 2)
 
 /obj/item/weapon/grenade/spawnergrenade/spesscarp
 	name = "carp delivery grenade"

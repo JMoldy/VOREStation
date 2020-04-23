@@ -17,6 +17,9 @@
 	var/wing
 	var/wing_animation
 	var/icobase_wing
+	var/wikilink = null //link to wiki page for species
+	var/icon_height = 32
+	var/agility = 20 //prob() to do agile things
 
 /datum/species/proc/update_attack_types()
 	unarmed_attacks = list()

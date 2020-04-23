@@ -4,7 +4,7 @@
 	desc = "Small wall-mounted chime triggered by a doorbell"
 	icon = 'icons/obj/machines/doorbell_vr.dmi'
 	icon_state = "dbchime-standby"
-	use_power = 1
+	use_power = USE_POWER_IDLE
 	idle_power_usage = 10
 	active_power_usage = 200
 	anchored = 1
@@ -43,12 +43,13 @@
 	else
 		icon_state = "dbchime-standby"
 
+//TFF 3/6/19 - Port Cit RP fix of infinite frames. ToDo: Make it so that you can completely deconstruct it and reconstruct it.
 /obj/machinery/doorbell_chime/attackby(obj/item/W as obj, mob/user as mob)
 	src.add_fingerprint(user)
 	if(default_deconstruction_screwdriver(user, W))
 		return
-	else if(default_deconstruction_crowbar(user, W))
-		return
+//	else if(default_deconstruction_crowbar(user, W))
+//		return
 	else if(default_part_replacement(user, W))
 		return
 	else if(panel_open && istype(W, /obj/item/device/multitool))
@@ -56,7 +57,7 @@
 		if(M.connectable && istype(M.connectable, /obj/machinery/button/doorbell))
 			var/obj/machinery/button/doorbell/B = M.connectable
 			id_tag = B.id
-			user << "<span class='notice'>You upload the data from \the [W]'s buffer.</span>"
+			to_chat(user, "<span class='notice'>You upload the data from \the [W]'s buffer.</span>")
 		return
 	..()
 
@@ -88,7 +89,7 @@
 	desc = "A doorbell, press to chime."
 	icon = 'icons/obj/machines/doorbell_vr.dmi'
 	icon_state = "doorbell-standby"
-	use_power = 0
+	use_power = USE_POWER_OFF
 
 /obj/machinery/button/doorbell/New(var/loc, var/dir, var/building = 0)
 	..()

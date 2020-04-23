@@ -16,6 +16,10 @@
 	icon_state = "uglyminearmed"
 	wires = new(src)
 
+/obj/effect/mine/Destroy()
+	qdel_null(wires)
+	return ..()
+
 /obj/effect/mine/proc/explode(var/mob/living/M)
 	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread()
 	triggered = 1
@@ -35,7 +39,9 @@
 		explode()
 	..()
 
-/obj/effect/mine/Crossed(AM as mob|obj)
+/obj/effect/mine/Crossed(atom/movable/AM as mob|obj)
+	if(AM.is_incorporeal())
+		return
 	Bumped(AM)
 
 /obj/effect/mine/Bumped(mob/M as mob|obj)

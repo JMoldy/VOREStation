@@ -10,6 +10,8 @@
 	unacidable = TRUE
 	pass_flags = PASSTABLE
 	mouse_opacity = 0
+	hitsound = 'sound/weapons/pierce.ogg'
+	var/hitsound_wall = null // Played when something hits a wall, or anything else that isn't a mob.
 
 	////TG PROJECTILE SYTSEM
 	//Projectile stuff
@@ -44,6 +46,7 @@
 	var/tracer_type
 	var/muzzle_type
 	var/impact_type
+	var/datum/beam_components_cache/beam_components
 
 	//Fancy hitscan lighting effects!
 	var/hitscan_light_intensity = 1.5
@@ -84,8 +87,17 @@
 	var/accuracy = 0
 	var/dispersion = 0.0
 
+	// Sub-munitions. Basically, multi-projectile shotgun, rather than pellets.
+	var/use_submunitions = FALSE
+	var/only_submunitions = FALSE // Will the projectile delete itself after firing the submunitions?
+	var/list/submunitions = list() // Assoc list of the paths of any submunitions, and how many they are. [projectilepath] = [projectilecount].
+	var/submunition_spread_max = 30 // Divided by 10 to get the percentile dispersion.
+	var/submunition_spread_min = 5 // Above.
+	var/force_max_submunition_spread = FALSE // Do we just force the maximum?
+	var/spread_submunition_damage = FALSE // Do we assign damage to our sub projectiles based on our main projectile damage?
+
 	var/damage = 10
-	var/damage_type = BRUTE //BRUTE, BURN, TOX, OXY, CLONE, HALLOSS are the only things that should be in here
+	var/damage_type = BRUTE //BRUTE, BURN, TOX, OXY, CLONE, HALLOSS, ELECTROCUTE, BIOACID, SEARING are the only things that should be in here
 	var/SA_bonus_damage = 0 // Some bullets inflict extra damage on simple animals.
 	var/SA_vulnerability = null // What kind of simple animal the above bonus damage should be applied to. Set to null to apply to all SAs.
 	var/nodamage = 0 //Determines if the projectile will skip any damage inflictions
@@ -94,7 +106,7 @@
 	var/projectile_type = /obj/item/projectile
 	var/penetrating = 0 //If greater than zero, the projectile will pass through dense objects as specified by on_penetrate()
 		//Effects
-	var/incendiary = 0 //1 for ignite on hit, 2 for trail of fire. 3 maybe later for burst of fire around the impact point. - Mech
+	var/incendiary = 0 //1 for ignite on hit, 2 for trail of fire. 3 for intense fire. - Mech
 	var/flammability = 0 //Amount of fire stacks to add for the above.
 	var/combustion = TRUE	//Does this set off flammable objects on fire/hit?
 	var/stun = 0
@@ -118,12 +130,18 @@
 
 	var/temporary_unstoppable_movement = FALSE
 
+	// When a non-hitscan projectile hits something, a visual effect can be spawned.
+	// This is distinct from the hitscan's "impact_type" var.
+	var/impact_effect_type = null
+
 /obj/item/projectile/proc/Range()
 	range--
 	if(range <= 0 && loc)
 		on_range()
 
 /obj/item/projectile/proc/on_range() //if we want there to be effects when they reach the end of their range
+	impact_sounds(loc)
+	impact_visuals(loc) // So it does a little 'burst' effect, but not actually do anything (unless overrided).
 	qdel(src)
 
 /obj/item/projectile/proc/return_predicted_turf_after_moves(moves, forced_angle)		//I say predicted because there's no telling that the projectile won't change direction/location in flight.
@@ -209,6 +227,8 @@
 	Range()
 
 /obj/item/projectile/Crossed(atom/movable/AM) //A mob moving on a tile with a projectile is hit by it.
+	if(AM.is_incorporeal())
+		return
 	..()
 	if(isliving(AM) && !(pass_flags & PASSMOB))
 		var/mob/living/L = AM
@@ -346,10 +366,18 @@
 /obj/item/projectile/proc/preparePixelProjectile(atom/target, atom/source, params, spread = 0)
 	var/turf/curloc = get_turf(source)
 	var/turf/targloc = get_turf(target)
+
+	if(istype(source, /atom/movable))
+		var/atom/movable/MT = source
+		if(MT.locs && MT.locs.len)	// Multi tile!
+			for(var/turf/T in MT.locs)
+				if(get_dist(T, target) < get_turf(curloc))
+					curloc = get_turf(T)
+
 	trajectory_ignore_forcemove = TRUE
 	forceMove(get_turf(source))
 	trajectory_ignore_forcemove = FALSE
-	starting = get_turf(source)
+	starting = curloc
 	original = target
 	if(targloc || !params)
 		yo = targloc.y - curloc.y
@@ -415,7 +443,6 @@
 	if(hitscan)
 		finalize_hitscan_and_generate_tracers()
 	STOP_PROCESSING(SSprojectiles, src)
-	cleanup_beam_segments()
 	qdel(trajectory)
 	return ..()
 
@@ -425,10 +452,14 @@
 	qdel(beam_index)
 
 /obj/item/projectile/proc/vol_by_damage()
-	if(damage)
-		return CLAMP((damage) * 0.67, 30, 100)// Multiply projectile damage by 0.67, then CLAMP the value between 30 and 100
+	if(damage || agony)
+		var/value_to_use = damage > agony ? damage : agony
+		// Multiply projectile damage by 1.2, then CLAMP the value between 30 and 100.
+		// This was 0.67 but in practice it made all projectiles that did 45 or less damage play at 30,
+		// which is hard to hear over the gunshots, and is rather rare for a projectile to do that much.
+		return CLAMP((value_to_use) * 1.2, 30, 100)
 	else
-		return 50 //if the projectile doesn't do damage, play its hitsound at 50% volume.
+		return 50 //if the projectile doesn't do damage or agony, play its hitsound at 50% volume.
 
 /obj/item/projectile/proc/finalize_hitscan_and_generate_tracers(impacting = TRUE)
 	if(trajectory && beam_index)
@@ -439,10 +470,11 @@
 /obj/item/projectile/proc/generate_hitscan_tracers(cleanup = TRUE, duration = 5, impacting = TRUE)
 	if(!length(beam_segments))
 		return
+	beam_components = new
 	if(tracer_type)
 		var/tempref = "\ref[src]"
 		for(var/datum/point/p in beam_segments)
-			generate_tracer_between_points(p, beam_segments[p], tracer_type, color, duration, hitscan_light_range, hitscan_light_color_override, hitscan_light_intensity, tempref)
+			generate_tracer_between_points(p, beam_segments[p], beam_components, tracer_type, color, duration, hitscan_light_range, hitscan_light_color_override, hitscan_light_intensity, tempref)
 	if(muzzle_type && duration > 0)
 		var/datum/point/p = beam_segments[1]
 		var/atom/movable/thing = new muzzle_type
@@ -452,7 +484,7 @@
 		thing.transform = M
 		thing.color = color
 		thing.set_light(muzzle_flash_range, muzzle_flash_intensity, muzzle_flash_color_override? muzzle_flash_color_override : color)
-		QDEL_IN(thing, duration)
+		beam_components.beam_components += thing
 	if(impacting && impact_type && duration > 0)
 		var/datum/point/p = beam_segments[beam_segments[beam_segments.len]]
 		var/atom/movable/thing = new impact_type
@@ -462,9 +494,8 @@
 		thing.transform = M
 		thing.color = color
 		thing.set_light(impact_light_range, impact_light_intensity, impact_light_color_override? impact_light_color_override : color)
-		QDEL_IN(thing, duration)
-	if(cleanup)
-		cleanup_beam_segments()
+		beam_components.beam_components += thing
+	QDEL_IN(beam_components, duration)
 
 //Returns true if the target atom is on our current turf and above the right layer
 //If direct target is true it's the originally clicked target.
@@ -569,6 +600,9 @@
 
 //called when the projectile stops flying because it Bump'd with something
 /obj/item/projectile/proc/on_impact(atom/A)
+	impact_sounds(A)
+	impact_visuals(A)
+
 	if(damage && damage_type == BURN)
 		var/turf/T = get_turf(A)
 		if(T)
@@ -610,16 +644,27 @@
 		def_zone = hit_zone //set def_zone, so if the projectile ends up hitting someone else later (to be implemented), it is more likely to hit the same part
 		result = target_mob.bullet_act(src, def_zone)
 
+	if(!istype(target_mob))
+		return FALSE // Mob deleted itself or something.
+
 	if(result == PROJECTILE_FORCE_MISS)
 		if(!silenced)
-			visible_message("<span class='notice'>\The [src] misses [target_mob] narrowly!</span>")
+			target_mob.visible_message("<span class='notice'>\The [src] misses \the [target_mob] narrowly!</span>")
+			playsound(target_mob, "bullet_miss", 75, 1)
 		return FALSE
 
 	//hit messages
 	if(silenced)
-		to_chat(target_mob, "<span class='danger'>You've been hit in the [parse_zone(def_zone)] by \the [src]!</span>")
+		playsound(target_mob, hitsound, 5, 1, -1)
+		to_chat(target_mob, span("critical", "You've been hit in the [parse_zone(def_zone)] by \the [src]!"))
 	else
-		visible_message("<span class='danger'>\The [target_mob] is hit by \the [src] in the [parse_zone(def_zone)]!</span>")//X has fired Y is now given by the guns so you cant tell who shot you if you could not see the shooter
+		var/volume = vol_by_damage()
+		playsound(target_mob, hitsound, volume, 1, -1)
+		// X has fired Y is now given by the guns so you cant tell who shot you if you could not see the shooter
+		target_mob.visible_message(
+			span("danger", "\The [target_mob] was hit in the [parse_zone(def_zone)] by \the [src]!"),
+			span("critical", "You've been hit in the [parse_zone(def_zone)] by \the [src]!")
+		)
 
 	//admin logs
 	if(!no_attack_log)
@@ -641,6 +686,37 @@
 	if(get_turf(target) == get_turf(src))
 		direct_target = target
 
+	if(use_submunitions && submunitions.len)
+		var/temp_min_spread = 0
+		if(force_max_submunition_spread)
+			temp_min_spread = submunition_spread_max
+		else
+			temp_min_spread = submunition_spread_min
+
+		var/damage_override = null
+
+		if(spread_submunition_damage)
+			damage_override = damage
+			if(nodamage)
+				damage_override = 0
+
+			var/projectile_count = 0
+
+			for(var/proj in submunitions)
+				projectile_count += submunitions[proj]
+
+			damage_override = round(damage_override / max(1, projectile_count))
+
+		for(var/path in submunitions)
+			for(var/count = 1 to submunitions[path])
+				var/obj/item/projectile/SM = new path(get_turf(loc))
+				SM.shot_from = shot_from
+				SM.silenced = silenced
+				SM.dispersion = rand(temp_min_spread, submunition_spread_max) / 10
+				if(!isnull(damage_override))
+					SM.damage = damage_override
+				SM.launch_projectile(target, target_zone, user, params, angle_override)
+
 	preparePixelProjectile(target, user? user : get_turf(src), params, forced_spread)
 	return fire(angle_override, direct_target)
 
@@ -651,3 +727,70 @@
 	silenced = launcher.silenced
 
 	return launch_projectile(target, target_zone, user, params, angle_override, forced_spread)
+
+/obj/item/projectile/proc/launch_projectile_from_turf(atom/target, target_zone, mob/user, params, angle_override, forced_spread = 0)
+	original = target
+	def_zone = check_zone(target_zone)
+	firer = user
+	var/direct_target
+	if(get_turf(target) == get_turf(src))
+		direct_target = target
+
+	if(use_submunitions && submunitions.len)
+		var/temp_min_spread = 0
+		if(force_max_submunition_spread)
+			temp_min_spread = submunition_spread_max
+		else
+			temp_min_spread = submunition_spread_min
+
+		var/damage_override = null
+
+		if(spread_submunition_damage)
+			damage_override = damage
+			if(nodamage)
+				damage_override = 0
+
+			var/projectile_count = 0
+
+			for(var/proj in submunitions)
+				projectile_count += submunitions[proj]
+
+			damage_override = round(damage_override / max(1, projectile_count))
+
+		for(var/path in submunitions)
+			for(var/count = 1 to submunitions[path])
+				var/obj/item/projectile/SM = new path(get_turf(loc))
+				SM.shot_from = shot_from
+				SM.silenced = silenced
+				SM.dispersion = rand(temp_min_spread, submunition_spread_max) / 10
+				if(!isnull(damage_override))
+					SM.damage = damage_override
+				SM.launch_projectile_from_turf(target, target_zone, user, params, angle_override)
+
+	preparePixelProjectile(target, get_turf(src), params, forced_spread)
+	return fire(angle_override, direct_target)
+
+// Makes a brief effect sprite appear when the projectile hits something solid.
+/obj/item/projectile/proc/impact_visuals(atom/A, hit_x, hit_y)
+	if(impact_effect_type && !hitscan) // Hitscan things have their own impact sprite.
+		if(isnull(hit_x) && isnull(hit_y))
+			if(trajectory)
+				// Effect goes where the projectile 'stopped'.
+				hit_x = A.pixel_x + trajectory.return_px()
+				hit_y = A.pixel_y + trajectory.return_py()
+			else if(A == original)
+				// Otherwise it goes where the person who fired clicked.
+				hit_x = A.pixel_x + p_x - 16
+				hit_y = A.pixel_y + p_y - 16
+			else
+				// Otherwise it'll be random.
+				hit_x = A.pixel_x + rand(-8, 8)
+				hit_y = A.pixel_y + rand(-8, 8)
+		new impact_effect_type(get_turf(A), src, hit_x, hit_y)
+
+/obj/item/projectile/proc/impact_sounds(atom/A)
+	if(hitsound_wall && !ismob(A)) // Mob sounds are handled in attack_mob().
+		var/volume = CLAMP(vol_by_damage() + 20, 0, 100)
+		if(silenced)
+			volume = 5
+		playsound(get_turf(A), hitsound_wall, volume, 1, -1)

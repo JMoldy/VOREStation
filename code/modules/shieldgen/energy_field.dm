@@ -31,8 +31,14 @@
 
 /obj/effect/energy_field/Destroy()
 	update_nearby_tiles()
-	my_gen.field.Remove(src)
-	my_gen = null
+	if(my_gen)
+		if(istype(my_gen))
+			my_gen.field.Remove(src)
+			my_gen = null
+		else if(istype(my_gen, /datum/artifact_effect/forcefield))
+			var/datum/artifact_effect/forcefield/AE = my_gen
+			AE.created_field.Remove(src)
+			my_gen = null
 	var/turf/current_loc = get_turf(src)
 	. = ..()
 	for(var/direction in cardinal)
@@ -59,6 +65,9 @@
 		adjust_strength(-damage / 20)
 		user.do_attack_animation(src)
 		user.setClickCooldown(user.get_attack_speed())
+
+/obj/effect/energy_field/take_damage(var/damage)
+	adjust_strength(-damage / 20)
 
 /obj/effect/energy_field/attack_hand(var/mob/living/user)
 	impact_effect(3) // Harmless, but still produces the 'impact' effect.

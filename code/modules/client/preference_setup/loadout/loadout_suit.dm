@@ -106,6 +106,8 @@ datum/gear/suit/duster
 	..()
 	var/list/hazards = list()
 	for(var/hazard_style in typesof(/obj/item/clothing/suit/storage/hazardvest))
+		if(hazard_style in typesof(/obj/item/clothing/suit/storage/hazardvest/fluff))	//VOREStation addition
+			continue																	//VOREStation addition
 		var/obj/item/clothing/suit/storage/hazardvest/hazardvest = hazard_style
 		hazards[initial(hazardvest.name)] = hazardvest
 	gear_tweaks += new/datum/gear_tweak/path(sortAssoc(hazards))
@@ -186,6 +188,11 @@ datum/gear/suit/duster
 		ponchos[initial(poncho.name)] = poncho
 	gear_tweaks += new/datum/gear_tweak/path(sortAssoc(ponchos))
 
+/datum/gear/suit/roles/poncho
+	display_name = "poncho, cargo"
+	path = /obj/item/clothing/accessory/poncho/roles/cargo
+	cost = 1
+
 /datum/gear/suit/roles/poncho/security
 	display_name = "poncho, security"
 	path = /obj/item/clothing/accessory/poncho/roles/security
@@ -201,10 +208,6 @@ datum/gear/suit/duster
 /datum/gear/suit/roles/poncho/science
 	display_name = "poncho, science"
 	path = /obj/item/clothing/accessory/poncho/roles/science
-
-/datum/gear/suit/roles/poncho/cargo
-	display_name = "poncho, cargo"
-	path = /obj/item/clothing/accessory/poncho/roles/cargo
 
 /datum/gear/suit/roles/poncho/cloak/hos
 	display_name = "cloak, head of security"
@@ -493,3 +496,11 @@ datum/gear/suit/duster
 	display_name = "snowsuit, supply"
 	path = /obj/item/clothing/suit/storage/snowsuit/cargo
 	allowed_roles = list("Quartermaster","Shaft Miner","Cargo Technician","Head of Personnel")
+
+/datum/gear/suit/miscellaneous/cardigan
+	display_name = "cardigan"
+	path = /obj/item/clothing/suit/storage/toggle/cardigan
+
+/datum/gear/suit/miscellaneous/cardigan/New()
+	..()
+	gear_tweaks = list(gear_tweak_free_color_choice)

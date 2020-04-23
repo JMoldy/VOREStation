@@ -101,7 +101,7 @@ Class Procs:
 
 	var/stat = 0
 	var/emagged = 0
-	var/use_power = 1
+	var/use_power = USE_POWER_IDLE
 		//0 = dont run the auto
 		//1 = run auto, use idle
 		//2 = run auto, use active
@@ -123,7 +123,7 @@ Class Procs:
 	..(l)
 	if(d)
 		set_dir(d)
-	if(circuit)
+	if(ispath(circuit))
 		circuit = new circuit(src)
 
 /obj/machinery/Initialize()
@@ -199,9 +199,9 @@ Class Procs:
 /obj/machinery/proc/auto_use_power()
 	if(!powered(power_channel))
 		return 0
-	if(use_power == 1)
+	if(use_power == USE_POWER_IDLE)
 		use_power(idle_power_usage, power_channel, 1)
-	else if(use_power >= 2)
+	else if(use_power >= USE_POWER_ACTIVE)
 		use_power(active_power_usage, power_channel, 1)
 	return 1
 
@@ -214,7 +214,6 @@ Class Procs:
 /obj/machinery/CanUseTopic(var/mob/user)
 	if(!interact_offline && (stat & (NOPOWER | BROKEN)))
 		return STATUS_CLOSE
-
 	return ..()
 
 /obj/machinery/CouldUseTopic(var/mob/user)
@@ -269,7 +268,7 @@ Class Procs:
 
 /obj/machinery/proc/state(var/msg)
 	for(var/mob/O in hearers(src, null))
-		O.show_message("\icon[src] <span class = 'notice'>[msg]</span>", 2)
+		O.show_message("[bicon(src)] <span class = 'notice'>[msg]</span>", 2)
 
 /obj/machinery/proc/ping(text=null)
 	if(!text)
@@ -408,14 +407,21 @@ Class Procs:
 
 /obj/machinery/proc/dismantle()
 	playsound(src.loc, 'sound/items/Crowbar.ogg', 50, 1)
+	//TFF 3/6/19 - port Cit RP fix of infinite frames. If it doesn't have a circuit board, don't create a frame. Return a smack instead. BONK!
+	if(!circuit)
+		return 0
 	var/obj/structure/frame/A = new /obj/structure/frame(src.loc)
 	var/obj/item/weapon/circuitboard/M = circuit
 	A.circuit = M
 	A.anchored = 1
-	A.density = 1
 	A.frame_type = M.board_type
 	if(A.frame_type.circuit)
 		A.need_circuit = 0
+
+	if(A.frame_type.frame_class == FRAME_CLASS_ALARM || A.frame_type.frame_class == FRAME_CLASS_DISPLAY)
+		A.density = 0
+	else
+		A.density = 1
 
 	if(A.frame_type.frame_class == FRAME_CLASS_MACHINE)
 		for(var/obj/D in component_parts)
@@ -451,4 +457,4 @@ Class Procs:
 	return
 
 /datum/proc/remove_visual(mob/M)
-	return 
+	return

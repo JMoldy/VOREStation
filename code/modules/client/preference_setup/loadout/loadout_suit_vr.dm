@@ -1,9 +1,3 @@
-/datum/gear/suit/roles/poncho/cloak/research
-	allowed_roles = list("Research Director","Scientist", "Roboticist", "Xenobiologist", "Explorer", "Pathfinder")
-
-/datum/gear/suit/roles/poncho/cloak/medical
-	allowed_roles = list("Medical Doctor","Chief Medical Officer","Chemist","Paramedic","Geneticist", "Psychiatrist", "Field Medic")
-
 /datum/gear/suit/wintercoat/medical
 	allowed_roles = list("Medical Doctor","Chief Medical Officer","Chemist","Paramedic","Geneticist", "Psychiatrist", "Field Medic")
 
@@ -39,3 +33,8 @@
 /datum/gear/suit/gntop
 	display_name = "GN crop jacket"
 	path = /obj/item/clothing/suit/storage/fluff/gntop
+
+/datum/gear/suit/old_poncho //This is made from an old sprite which has been here for quite some time. Called old poncho because duplicates
+	display_name = "Colorful poncho"
+	description = "A mexican looking poncho. It look like it fits wolf taurs as well."
+	path = /obj/item/clothing/suit/poncho

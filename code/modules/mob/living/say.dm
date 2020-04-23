@@ -8,6 +8,7 @@ var/list/department_radio_keys = list(
 	  ":n" = "Science",		".n" = "Science",
 	  ":m" = "Medical",		".m" = "Medical",
 	  ":e" = "Engineering", ".e" = "Engineering",
+	  ":k" = "Response Team",	".k" = "Response Team",	//TFF 11/3/20 - Add Response Team to channels usable rather than resorting to :H or such.,
 	  ":s" = "Security",	".s" = "Security",
 	  ":w" = "whisper",		".w" = "whisper",
 	  ":t" = "Mercenary",	".t" = "Mercenary",
@@ -16,6 +17,7 @@ var/list/department_radio_keys = list(
 	  ":v" = "Service",		".v" = "Service",
 	  ":p" = "AI Private",	".p" = "AI Private",
 	  ":y" = "Explorer",	".y" = "Explorer",
+	  ":t" = "Talon",		".t" = "Talon", //VOREStation Add,
 
 	  ":R" = "right ear",	".R" = "right ear",
 	  ":L" = "left ear",	".L" = "left ear",
@@ -25,6 +27,7 @@ var/list/department_radio_keys = list(
 	  ":N" = "Science",		".N" = "Science",
 	  ":M" = "Medical",		".M" = "Medical",
 	  ":E" = "Engineering",	".E" = "Engineering",
+	  ":k" = "Response Team",	".k" = "Response Team",	//TFF 11/3/20 - Add Response Team to channels usable rather than resorting to :H or such.,
 	  ":S" = "Security",	".S" = "Security",
 	  ":W" = "whisper",		".W" = "whisper",
 	  ":T" = "Mercenary",	".T" = "Mercenary",
@@ -33,6 +36,7 @@ var/list/department_radio_keys = list(
 	  ":V" = "Service",		".V" = "Service",
 	  ":P" = "AI Private",	".P" = "AI Private",
 	  ":Y" = "Explorer",	".Y" = "Explorer",
+	  ":T" = "Talon",		".T" = "Talon", //VOREStation Add,
 
 	  //kinda localization -- rastaf0
 	  //same keys as above, but on russian keyboard layout. This file uses cp1251 as encoding.
@@ -107,6 +111,12 @@ proc/get_radio_key_from_channel(var/channel)
 		message = stutter(message)
 		verb = pick("stammers","stutters")
 		. = 1
+	//VOREStation Edit Start
+	if(muffled)
+		verb = pick("muffles")
+		whispering = 1
+		. = 1
+	//VOREStation Edit End
 
 	message_data[1] = message
 	message_data[2] = verb
@@ -177,7 +187,7 @@ proc/get_radio_key_from_channel(var/channel)
 		speaking = get_default_language()
 
 	if(!can_speak(speaking))
-		speaking = all_languages[LANGUAGE_GIBBERISH]
+		speaking = GLOB.all_languages[LANGUAGE_GIBBERISH]
 		var/babble_key = ",r"
 		message = babble_key + message
 
@@ -275,6 +285,20 @@ proc/get_radio_key_from_channel(var/channel)
 		message_range = 1
 		sound_vol *= 0.5
 
+	//VOREStation edit - allows for custom say verbs, overriding all other say-verb types- e.g. "says loudly" instead of "shouts"
+	//You'll still stammer if injured or slur if drunk, but it won't have those specific words
+	var/ending = copytext(message, length(message))
+
+	if(custom_whisper && whispering)
+		verb = "[custom_whisper]"
+	else if(custom_exclaim && ending=="!")
+		verb = "[custom_exclaim]"
+	else if(custom_ask && ending=="?")
+		verb = "[custom_ask]"
+	else if(custom_say)
+		verb = "[custom_say]"
+	//VOREStation edit ends
+
 	//Handle nonverbal and sign languages here
 	if (speaking)
 		if (speaking.flags & SIGNLANG)
@@ -339,6 +363,12 @@ proc/get_radio_key_from_channel(var/channel)
 		spawn(0) //Using spawns to queue all the messages for AFTER this proc is done, and stop runtimes
 
 			if(M && src) //If we still exist, when the spawn processes
+				//VOREStation Add - Ghosts don't hear whispers
+				if(whispering && !is_preference_enabled(/datum/client_preference/whisubtle_vis) && isobserver(M) && !M.client?.holder)
+					M.show_message("<span class='game say'><span class='name'>[src.name]</span> [w_not_heard].</span>", 2)
+					return
+				//VOREStation Add End
+
 				var/dst = get_dist(get_turf(M),get_turf(src))
 
 				if(dst <= message_range || (M.stat == DEAD && !forbid_seeing_deadchat)) //Inside normal message range, or dead with ears (handled in the view proc)
@@ -399,6 +429,10 @@ proc/get_radio_key_from_channel(var/channel)
 		for(var/hearer in mobs)
 			var/mob/M = hearer
 			M.hear_signlang(message, verb, language, src)
+		var/list/objs = potentials["objs"]
+		for(var/hearer in objs)
+			var/obj/O = hearer
+			O.hear_signlang(message, verb, language, src)
 	return 1
 
 /obj/effect/speech_bubble

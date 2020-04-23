@@ -19,6 +19,7 @@
 	var/list/syllables                // Used when scrambling text for a non-speaker.
 	var/list/space_chance = 55        // Likelihood of getting a space in the random scramble string
 	var/machine_understands = 1		  // Whether machines can parse and understand this language
+	var/list/partial_understanding	  // List of languages that can /somehwat/ understand it, format is: name = chance of understanding a word
 
 /datum/language/proc/get_random_name(var/gender, name_count=2, syllable_count=4, syllable_divisor=2)
 	if(!syllables || !syllables.len)
@@ -41,8 +42,42 @@
 /datum/language
 	var/list/scramble_cache = list()
 
-/datum/language/proc/scramble(var/input)
+/datum/language/proc/scramble(var/input, var/list/known_languages)
+	var/understand_chance = 0
+	for(var/datum/language/L in known_languages)
+		if(partial_understanding && partial_understanding[L.name])
+			understand_chance += partial_understanding[L.name]
+		if(L.partial_understanding && L.partial_understanding[name])
+			understand_chance += L.partial_understanding[name] * 0.5
+	var/scrambled_text = ""
+	var/list/words = splittext(input, " ")
+	for(var/w in words)
+		if(prob(understand_chance))
+			scrambled_text += " [w] "
+		else
+			var/nword = scramble_word(w)
+			var/ending = copytext(scrambled_text, length(scrambled_text)-1)
+			if(findtext(ending,"."))
+				nword = capitalize(nword)
+			else if(findtext(ending,"!"))
+				nword = capitalize(nword)
+			else if(findtext(ending,"?"))
+				nword = capitalize(nword)
+			scrambled_text += nword
+	scrambled_text = replacetext(scrambled_text,"  "," ")
+	scrambled_text = capitalize(scrambled_text)
+	scrambled_text = trim(scrambled_text)
+	var/ending = copytext(scrambled_text, length(scrambled_text))
+	if(ending == ".")
+		scrambled_text = copytext(scrambled_text,1,length(scrambled_text)-1)
 
+	var/input_ending = copytext(input, length(input))
+	if(input_ending in list("!","?","."))
+		scrambled_text += input_ending
+
+	return scrambled_text
+
+/datum/language/proc/scramble_word(var/input)
 	if(!syllables || !syllables.len)
 		return stars(input)
 
@@ -55,7 +90,7 @@
 
 	var/input_size = length(input)
 	var/scrambled_text = ""
-	var/capitalize = 1
+	var/capitalize = 0
 
 	while(length(scrambled_text) < input_size)
 		var/next = pick(syllables)
@@ -69,14 +104,6 @@
 			capitalize = 1
 		else if(chance > 5 && chance <= space_chance)
 			scrambled_text += " "
-
-	scrambled_text = trim(scrambled_text)
-	var/ending = copytext(scrambled_text, length(scrambled_text))
-	if(ending == ".")
-		scrambled_text = copytext(scrambled_text,1,length(scrambled_text)-1)
-	var/input_ending = copytext(input, input_size)
-	if(input_ending in list("!","?","."))
-		scrambled_text += input_ending
 
 	// Add it to cache, cutting old entries if the list is too long
 	scramble_cache[input] = scrambled_text
@@ -110,16 +137,16 @@
 /mob/proc/hear_broadcast(var/datum/language/language, var/mob/speaker, var/speaker_name, var/message)
 	if((language in languages) && language.check_special_condition(src))
 		var/msg = "<i><span class='game say'>[language.name], <span class='name'>[speaker_name]</span> [message]</span></i>"
-		src << msg
+		to_chat(src,msg)
 
 /mob/new_player/hear_broadcast(var/datum/language/language, var/mob/speaker, var/speaker_name, var/message)
 	return
 
 /mob/observer/dead/hear_broadcast(var/datum/language/language, var/mob/speaker, var/speaker_name, var/message)
 	if(speaker.name == speaker_name || antagHUD)
-		src << "<i><span class='game say'>[language.name], <span class='name'>[speaker_name]</span> ([ghost_follow_link(speaker, src)]) [message]</span></i>"
+		to_chat(src, "<i><span class='game say'>[language.name], <span class='name'>[speaker_name]</span> ([ghost_follow_link(speaker, src)]) [message]</span></i>")
 	else
-		src << "<i><span class='game say'>[language.name], <span class='name'>[speaker_name]</span> [message]</span></i>"
+		to_chat(src, "<i><span class='game say'>[language.name], <span class='name'>[speaker_name]</span> [message]</span></i>")
 
 /datum/language/proc/check_special_condition(var/mob/other)
 	return 1
@@ -137,6 +164,11 @@
 	if(name != "Noise")	// Audible Emotes
 		if(ishuman(speaker))
 			var/mob/living/carbon/human/H = speaker
+			if(H.species.has_organ[O_VOICE] && !(flags & SIGNLANG) && !(flags & NONVERBAL)) // Does the species need a voicebox? Is the language even spoken?
+				var/obj/item/organ/internal/voicebox/vocal = H.internal_organs_by_name[O_VOICE]
+				if(!vocal || vocal.is_broken() || vocal.mute)
+					return FALSE
+
 			if(src.name in H.species.assisted_langs)
 				. = FALSE
 				var/obj/item/organ/internal/voicebox/vox = locate() in H.internal_organs	// Only voiceboxes for now. Maybe someday it'll include other organs, but I'm not that clever
@@ -147,7 +179,7 @@
 // Language handling.
 /mob/proc/add_language(var/language)
 
-	var/datum/language/new_language = all_languages[language]
+	var/datum/language/new_language = GLOB.all_languages[language]
 
 	if(!istype(new_language) || (new_language in languages))
 		return 0
@@ -156,12 +188,12 @@
 	return 1
 
 /mob/proc/remove_language(var/rem_language)
-	var/datum/language/L = all_languages[rem_language]
+	var/datum/language/L = GLOB.all_languages[rem_language]
 	. = (L in languages)
 	languages.Remove(L)
 
 /mob/living/remove_language(rem_language)
-	var/datum/language/L = all_languages[rem_language]
+	var/datum/language/L = GLOB.all_languages[rem_language]
 	if(default_language == L)
 		default_language = null
 	return ..()
@@ -173,10 +205,10 @@
 		log_debug("[src] attempted to speak a null language.")
 		return 0
 
-	if(speaking == all_languages["Noise"])
+	if(speaking == GLOB.all_languages["Noise"])
 		return 1
 
-	if (only_species_language && speaking != all_languages[species_language])
+	if (only_species_language && speaking != GLOB.all_languages[species_language])
 		return 0
 
 	if(speaking.can_speak_special(src))
@@ -236,7 +268,7 @@
 	if(href_list["default_lang"])
 		if(href_list["default_lang"] == "reset")
 			if (species_language)
-				set_default_language(all_languages[species_language])
+				set_default_language(GLOB.all_languages[species_language])
 			else
 				set_default_language(null)
 		else

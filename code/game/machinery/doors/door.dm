@@ -42,7 +42,7 @@
 	if(isanimal(user))
 		var/mob/living/simple_mob/S = user
 		if(damage >= STRUCTURE_MIN_DAMAGE_THRESHOLD)
-			visible_message("<span class='danger'>\The [user] smashes into the [src]!</span>")
+			visible_message("<span class='danger'>\The [user] smashes into [src]!</span>")
 			playsound(src, S.attack_sound, 75, 1)
 			take_damage(damage)
 		else
@@ -308,7 +308,7 @@
 		operating = -1
 		return 1
 
-/obj/machinery/door/proc/take_damage(var/damage)
+/obj/machinery/door/take_damage(var/damage)
 	var/initialhealth = src.health
 	src.health = max(0, src.health - damage)
 	if(src.health <= 0 && initialhealth > 0)
@@ -327,7 +327,7 @@
 	. = ..()
 	if(src.health <= 0)
 		to_chat(user, "\The [src] is broken!")
-	if(src.health < src.maxhealth / 4)
+	else if(src.health < src.maxhealth / 4)
 		to_chat(user, "\The [src] looks like it's about to break!")
 	else if(src.health < src.maxhealth / 2)
 		to_chat(user, "\The [src] looks seriously damaged!")
@@ -382,7 +382,7 @@
 		icon_state = "door1"
 	else
 		icon_state = "door0"
-	radiation_repository.resistance_cache.Remove(get_turf(src))
+	SSradiation.resistance_cache.Remove(get_turf(src))
 	return
 
 

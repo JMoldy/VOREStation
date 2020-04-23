@@ -30,11 +30,11 @@
 		return
 
 	if(contents.len <= 0)
-		user << "There are no [icon_type]s left in the box."
+		to_chat(user, "There are no [icon_type]s left in the box.")
 	else if(contents.len == 1)
-		user << "There is one [icon_type] left in the box."
+		to_chat(user, "There is one [icon_type] left in the box.")
 	else
-		user << "There are [contents.len] [icon_type]s in the box."
+		to_chat(user, "There are [contents.len] [icon_type]s in the box.")
 
 	return
 
@@ -47,6 +47,7 @@
 	icon_state = "eggbox"
 	icon_type = "egg"
 	name = "egg box"
+	center_of_mass = list("x" = 16,"y" = 7)
 	storage_slots = 12
 	can_hold = list(
 		/obj/item/weapon/reagent_containers/food/snacks/egg,
@@ -67,6 +68,7 @@
 	item_state = "candlebox5"
 	throwforce = 2
 	slot_flags = SLOT_BELT
+	max_storage_space = ITEMSIZE_COST_SMALL * 5
 	starts_with = list(/obj/item/weapon/flame/candle = 5)
 
 /obj/item/weapon/storage/fancy/whitecandle_box
@@ -78,6 +80,7 @@
 	item_state = "whitecandlebox5"
 	throwforce = 2
 	slot_flags = SLOT_BELT
+	max_storage_space = ITEMSIZE_COST_SMALL * 5
 	starts_with = list(/obj/item/weapon/flame/candle/white = 5)
 
 /obj/item/weapon/storage/fancy/blackcandle_box
@@ -89,6 +92,7 @@
 	item_state = "blackcandlebox5"
 	throwforce = 2
 	slot_flags = SLOT_BELT
+	max_storage_space = ITEMSIZE_COST_SMALL * 5
 	starts_with = list(/obj/item/weapon/flame/candle/black = 5)
 
 
@@ -179,6 +183,21 @@
 				return
 	..()
 
+/*
+ * Cracker Packet
+ */
+
+/obj/item/weapon/storage/fancy/crackers
+	name = "\improper Getmore Crackers"
+	icon = 'icons/obj/food.dmi'
+	icon_state = "crackerbox"
+	icon_type = "cracker"
+	max_storage_space = ITEMSIZE_COST_TINY * 6
+	max_w_class = ITEMSIZE_TINY
+	w_class = ITEMSIZE_SMALL
+	can_hold = list(/obj/item/weapon/reagent_containers/food/snacks/cracker)
+	starts_with = list(/obj/item/weapon/reagent_containers/food/snacks/cracker = 6)
+
 ////////////
 //CIG PACK//
 ////////////
@@ -227,7 +246,7 @@
 		var/obj/item/clothing/mask/smokable/cigarette/cig = locate() in src
 
 		if(cig == null)
-			user << "<span class='notice'>Looks like the packet is out of cigarettes.</span>"
+			to_chat(user, "<span class='notice'>Looks like the packet is out of cigarettes.</span>")
 			return
 
 		// Instead of running equip_to_slot_if_possible() we check here first,
@@ -241,7 +260,7 @@
 		user.equip_to_slot(cig, slot_wear_mask)
 
 		reagents.maximum_volume = 15 * contents.len
-		user << "<span class='notice'>You take a cigarette out of the pack.</span>"
+		to_chat(user, "<span class='notice'>You take a cigarette out of the pack.</span>")
 		update_icon()
 	else
 		..()
@@ -339,6 +358,7 @@
 	icon_state = "vialbox6"
 	icon_type = "vial"
 	name = "vial storage box"
+	desc = "A helpful rack to hold test tubes."
 	storage_slots = 6
 	can_hold = list(/obj/item/weapon/reagent_containers/glass/beaker/vial)
 	starts_with = list(/obj/item/weapon/reagent_containers/glass/beaker/vial = 6)

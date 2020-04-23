@@ -47,6 +47,7 @@
 	// Networks that will show up as options in the camera monitor program
 	station_networks = list(
 							NETWORK_CARGO,
+							NETWORK_CIRCUITS,
 							NETWORK_CIVILIAN,
 							NETWORK_COMMAND,
 							NETWORK_ENGINE,
@@ -65,12 +66,26 @@
 							NETWORK_SECURITY,
 							NETWORK_TELECOM
 							)
-
+	// Camera networks that exist, but don't show on regular camera monitors.
+	secondary_networks = list(
+							NETWORK_ERT,
+							NETWORK_MERCENARY,
+							NETWORK_THUNDER,
+							NETWORK_COMMUNICATORS,
+							NETWORK_ALARM_ATMOS,
+							NETWORK_ALARM_POWER,
+							NETWORK_ALARM_FIRE,
+							NETWORK_SUPPLY
+							)
 	usable_email_tlds = list("freemail.nt")
 	allowed_spawns = list("Arrivals Shuttle","Gateway", "Cryogenic Storage", "Cyborg Storage")
-	unit_test_exempt_areas = list(/area/ninja_dojo, /area/ninja_dojo/firstdeck, /area/ninja_dojo/arrivals_dock)
 
+	default_skybox = /datum/skybox_settings/southern_cross
+
+	unit_test_exempt_areas = list(/area/ninja_dojo, /area/ninja_dojo/firstdeck, /area/ninja_dojo/arrivals_dock)
 	unit_test_exempt_from_atmos = list(/area/tcomm/chamber)
+
+	planet_datums_to_make = list(/datum/planet/sif)
 
 
 // Short range computers see only the six main levels, others can see the surrounding surface levels.
@@ -78,19 +93,22 @@
 	if (long_range && (srcz in map_levels))
 		return map_levels
 	else if (srcz == Z_LEVEL_TRANSIT)
-		return list() // Nothing on transit!
+		return list() // Nothing on these z-levels- sensors won't show, and GPSes won't see each other.
 	else if (srcz >= Z_LEVEL_STATION_ONE && srcz <= Z_LEVEL_STATION_THREE) // Station can see other decks.
 		return list(
 			Z_LEVEL_STATION_ONE,
 			Z_LEVEL_STATION_TWO,
-			Z_LEVEL_STATION_THREE)
+			Z_LEVEL_STATION_THREE,
+			Z_LEVEL_SURFACE,
+			Z_LEVEL_SURFACE_MINE,
+			Z_LEVEL_SURFACE_WILD)
 	else if(srcz in list(Z_LEVEL_SURFACE, Z_LEVEL_SURFACE_MINE, Z_LEVEL_SURFACE_WILD)) // Being on the surface lets you see other surface Zs.
 		return list(
 			Z_LEVEL_SURFACE,
 			Z_LEVEL_SURFACE_MINE,
 			Z_LEVEL_SURFACE_WILD)
 	else
-		return ..()
+		return list(srcz) //prevents runtimes when using CMC. any Z-level not defined above will be 'isolated' and only show to GPSes/CMCs on that same Z (e.g. CentCom).
 
 /datum/map/southern_cross/perform_map_generation()
 	// First, place a bunch of submaps. This comes before tunnel/forest generation as to not interfere with the submap.
@@ -110,6 +128,11 @@
 	new /datum/random_map/noise/ore(null, 1, 1, Z_LEVEL_SURFACE_MINE, 64, 64)         // Create the mining ore distribution map.
 	// Todo: Forest generation.
 	return 1
+
+// Skybox Settings
+/datum/skybox_settings/southern_cross
+	icon_state = "dyable"
+	random_color = TRUE
 
 // For making the 6-in-1 holomap, we calculate some offsets
 #define SOUTHERN_CROSS_MAP_SIZE 160 // Width and height of compiled in Southern Cross z levels.

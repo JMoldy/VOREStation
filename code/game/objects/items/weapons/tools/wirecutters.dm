@@ -6,6 +6,7 @@
 	desc = "This cuts wires."
 	icon = 'icons/obj/tools.dmi'
 	icon_state = "cutters"
+	center_of_mass = list("x" = 18,"y" = 10)
 	slot_flags = SLOT_BELT
 	force = 6
 	throw_speed = 2
@@ -16,6 +17,7 @@
 	attack_verb = list("pinched", "nipped")
 	hitsound = 'sound/items/wirecutter.ogg'
 	usesound = 'sound/items/wirecutter.ogg'
+	drop_sound = 'sound/items/drop/knife.ogg'
 	sharp = 1
 	edge = 1
 	toolspeed = 1
@@ -88,7 +90,7 @@
 /obj/item/weapon/tool/wirecutters/hybrid/is_wirecutter()
 	if(prob(10))
 		var/turf/T = get_turf(src)
-		radiation_repository.radiate(get_turf(src), 5)
+		SSradiation.radiate(get_turf(src), 5)
 		T.visible_message("<span class='alien'>\The [src] shudders!</span>")
 		return FALSE
 	return TRUE

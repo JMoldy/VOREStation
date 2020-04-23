@@ -48,6 +48,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 	var/list/conversations = list()    // For keeping up with who we have PDA messsages from.
 	var/new_message = 0			//To remove hackish overlay check
 	var/new_news = 0
+	var/touch_silent = 0 //If 1, no beeps on interacting.
 
 	var/active_feed				// The selected feed
 	var/list/warrant			// The warrant as we last knew it
@@ -64,10 +65,20 @@ var/global/list/obj/item/device/pda/PDAs = list()
 
 	var/obj/item/device/paicard/pai = null	// A slot for a personal AI device
 
+	var/spam_proof = FALSE // If true, it can't be spammed by random events.
+
 /obj/item/device/pda/examine(mob/user)
 	if(..(user, 1))
 		to_chat(user, "The time [stationtime2text()] is displayed in the corner of the screen.")
 
+/obj/item/device/pda/CtrlClick()
+	if(issilicon(usr))
+		return
+
+	if(can_use(usr))
+		remove_pen()
+		return
+	..()
 
 /obj/item/device/pda/AltClick()
 	if(issilicon(usr))
@@ -79,6 +90,11 @@ var/global/list/obj/item/device/pda/PDAs = list()
 		else
 			to_chat(usr, "<span class='notice'>This PDA does not have an ID in it.</span>")
 
+//Bloop when using:
+/obj/item/device/pda/CouldUseTopic(var/mob/user)
+	..()
+	if(iscarbon(user) && !touch_silent)
+		playsound(src, 'sound/machines/pda_click.ogg', 20)
 
 /obj/item/device/pda/medical
 	default_cartridge = /obj/item/weapon/cartridge/medical
@@ -320,6 +336,8 @@ var/global/list/obj/item/device/pda/PDAs = list()
 /obj/item/device/pda/ai/pai
 	ttone = "assist"
 
+/obj/item/device/pda/ai/shell
+	spam_proof = TRUE // Since empty shells get a functional PDA.
 
 // Used for the PDA multicaster, which mirrors messages sent to it to a specific department,
 /obj/item/device/pda/multicaster
@@ -328,6 +346,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 	ttone = "data"
 	detonate = 0
 	news_silent = 1
+	spam_proof = TRUE // Spam messages don't actually work and its difficult to disable these.
 	var/list/cartridges_to_send_to = list()
 
 // This is what actually mirrors the message,
@@ -431,6 +450,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 		if(2) icon = 'icons/obj/pda_slim.dmi'
 		if(3) icon = 'icons/obj/pda_old.dmi'
 		if(4) icon = 'icons/obj/pda_rugged.dmi'
+		if(5) icon = 'icons/obj/pda_holo.dmi'
 		else
 			icon = 'icons/obj/pda_old.dmi'
 			log_debug("Invalid switch for PDA, defaulting to old PDA icons. [pdachoice] chosen.")
@@ -490,6 +510,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 	data["note"] = note					// current pda notes
 	data["message_silent"] = message_silent					// does the pda make noise when it receives a message?
 	data["news_silent"] = news_silent					// does the pda make noise when it receives news?
+	data["touch_silent"] = touch_silent					// does the pda make noise when it receives news?
 	data["toff"] = toff					// is the messenger function turned off?
 	data["active_conversation"] = active_conversation	// Which conversation are we following right now?
 
@@ -577,31 +598,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 
 
 	if(mode==3)
-		var/turf/T = get_turf(user.loc)
-		if(!isnull(T))
-			var/datum/gas_mixture/environment = T.return_air()
-
-			var/pressure = environment.return_pressure()
-			var/total_moles = environment.total_moles
-
-			if (total_moles)
-				var/o2_level = environment.gas["oxygen"]/total_moles
-				var/n2_level = environment.gas["nitrogen"]/total_moles
-				var/co2_level = environment.gas["carbon_dioxide"]/total_moles
-				var/phoron_level = environment.gas["phoron"]/total_moles
-				var/unknown_level =  1-(o2_level+n2_level+co2_level+phoron_level)
-				data["aircontents"] = list(\
-					"pressure" = "[round(pressure,0.1)]",\
-					"nitrogen" = "[round(n2_level*100,0.1)]",\
-					"oxygen" = "[round(o2_level*100,0.1)]",\
-					"carbon_dioxide" = "[round(co2_level*100,0.1)]",\
-					"phoron" = "[round(phoron_level*100,0.01)]",\
-					"other" = "[round(unknown_level, 0.01)]",\
-					"temp" = "[round(environment.temperature-T0C,0.1)]",\
-					"reading" = 1\
-					)
-		if(isnull(data["aircontents"]))
-			data["aircontents"] = list("reading" = 0)
+		data["aircontents"] = src.analyze_air()
 	if(mode==6)
 		if(has_reception)
 			feeds.Cut()
@@ -663,8 +660,9 @@ var/global/list/obj/item/device/pda/PDAs = list()
 	// auto update every Master Controller tick
 	ui.set_auto_update(auto_update)
 
-//NOTE: graphic resources are loaded on client login
 /obj/item/device/pda/attack_self(mob/user as mob)
+	var/datum/asset/assets = get_asset_datum(/datum/asset/simple/pda)
+	assets.send(user)
 
 	user.set_machine(src)
 
@@ -782,6 +780,8 @@ var/global/list/obj/item/device/pda/PDAs = list()
 				scanmode = 0
 			else if((!isnull(cartridge)) && (cartridge.access_atmos))
 				scanmode = 5
+		if("Toggle Beeping")
+			touch_silent = !touch_silent
 
 //MESSENGER/NOTE FUNCTIONS===================================
 
@@ -1063,9 +1063,23 @@ var/global/list/obj/item/device/pda/PDAs = list()
 			var/mob/M = loc
 			M.put_in_hands(id)
 			to_chat(usr, "<span class='notice'>You remove the ID from the [name].</span>")
+			playsound(loc, 'sound/machines/id_swipe.ogg', 100, 1)
 		else
 			id.loc = get_turf(src)
 		id = null
+
+/obj/item/device/pda/proc/remove_pen()
+	var/obj/item/weapon/pen/O = locate() in src
+	if(O)
+		if(istype(loc, /mob))
+			var/mob/M = loc
+			if(M.get_active_hand() == null)
+				M.put_in_hands(O)
+				to_chat(usr, "<span class='notice'>You remove \the [O] from \the [src].</span>")
+				return
+		O.loc = get_turf(src)
+	else
+		to_chat(usr, "<span class='notice'>This PDA does not have a pen in it.</span>")
 
 /obj/item/device/pda/proc/create_message(var/mob/living/U = usr, var/obj/item/device/pda/P, var/tap = 1)
 	if(tap)
@@ -1120,7 +1134,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 			P.conversations.Add("\ref[src]")
 
 
-		if (prob(15)) //Give the AI a chance of intercepting the message
+		if (prob(5) && security_level >= SEC_LEVEL_BLUE) //Give the AI a chance of intercepting the message		//VOREStation Edit: no spam interception on lower codes + lower interception chance
 			var/who = src.owner
 			if(prob(50))
 				who = P.owner
@@ -1138,7 +1152,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 	if (!beep_silent)
 		playsound(loc, 'sound/machines/twobeep.ogg', 50, 1)
 		for (var/mob/O in hearers(2, loc))
-			O.show_message(text("\icon[src] *[message_tone]*"))
+			O.show_message(text("[bicon(src)] *[message_tone]*"))
 	//Search for holder of the PDA.
 	var/mob/living/L = null
 	if(loc && isliving(loc))
@@ -1149,11 +1163,11 @@ var/global/list/obj/item/device/pda/PDAs = list()
 
 	if(L)
 		if(reception_message)
-			L << reception_message
+			to_chat(L,reception_message)
 		SSnanoui.update_user_uis(L, src) // Update the receiving user's PDA UI so that they can see the new message
 
 /obj/item/device/pda/proc/new_news(var/message)
-	new_info(news_silent, newstone, news_silent ? "" : "\icon[src] <b>[message]</b>")
+	new_info(news_silent, newstone, news_silent ? "" : "[bicon(src)] <b>[message]</b>")
 
 	if(!news_silent)
 		new_news = 1
@@ -1168,7 +1182,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 	new_message(sending_device, sending_device.owner, sending_device.ownjob, message)
 
 /obj/item/device/pda/proc/new_message(var/sending_unit, var/sender, var/sender_job, var/message, var/reply = 1)
-	var/reception_message = "\icon[src] <b>Message from [sender] ([sender_job]), </b>\"[message]\" ([reply ? "<a href='byond://?src=\ref[src];choice=Message;notap=[istype(loc, /mob/living/silicon)];skiprefresh=1;target=\ref[sending_unit]'>Reply</a>" : "Unable to Reply"])"
+	var/reception_message = "[bicon(src)] <b>Message from [sender] ([sender_job]), </b>\"[message]\" ([reply ? "<a href='byond://?src=\ref[src];choice=Message;notap=[istype(loc, /mob/living/silicon)];skiprefresh=1;target=\ref[sending_unit]'>Reply</a>" : "Unable to Reply"])"
 	new_info(message_silent, ttone, reception_message)
 
 	log_pda("(PDA: [sending_unit]) sent \"[message]\" to [name]", usr)
@@ -1180,11 +1194,20 @@ var/global/list/obj/item/device/pda/PDAs = list()
 	if(ismob(sending_unit.loc) && isAI(loc))
 		track = "(<a href='byond://?src=\ref[loc];track=\ref[sending_unit.loc];trackname=[html_encode(sender)]'>Follow</a>)"
 
-	var/reception_message = "\icon[src] <b>Message from [sender] ([sender_job]), </b>\"[message]\" (<a href='byond://?src=\ref[src];choice=Message;notap=1;skiprefresh=1;target=\ref[sending_unit]'>Reply</a>) [track]"
+	var/reception_message = "[bicon(src)] <b>Message from [sender] ([sender_job]), </b>\"[message]\" (<a href='byond://?src=\ref[src];choice=Message;notap=1;skiprefresh=1;target=\ref[sending_unit]'>Reply</a>) [track]"
 	new_info(message_silent, newstone, reception_message)
 
 	log_pda("(PDA: [sending_unit]) sent \"[message]\" to [name]",usr)
 	new_message = 1
+
+/obj/item/device/pda/proc/spam_message(sender, message)
+	var/reception_message = "\icon[src] <b>Message from [sender] (Unknown / spam?), </b>\"[message]\" (Unable to Reply)"
+	new_info(message_silent, ttone, reception_message)
+
+	if(prob(50)) // Give the AI an increased chance to intercept the message
+		for(var/mob/living/silicon/ai/ai in mob_list)
+			if(ai.aiPDA != src)
+				ai.show_message("<i>Intercepted message from <b>[sender]</b></i> (Unknown / spam?) <i>to <b>[owner]</b>: [message]</i>")
 
 /obj/item/device/pda/verb/verb_reset_pda()
 	set category = "Object"
@@ -1227,17 +1250,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 		return
 
 	if ( can_use(usr) )
-		var/obj/item/weapon/pen/O = locate() in src
-		if(O)
-			if (istype(loc, /mob))
-				var/mob/M = loc
-				if(M.get_active_hand() == null)
-					M.put_in_hands(O)
-					to_chat(usr, "<span class='notice'>You remove \the [O] from \the [src].</span>")
-					return
-			O.loc = get_turf(src)
-		else
-			to_chat(usr, "<span class='notice'>This PDA does not have a pen in it.</span>")
+		remove_pen()
 	else
 		to_chat(usr, "<span class='notice'>You cannot do this while restrained.</span>")
 
@@ -1266,6 +1279,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 	if (cartridge.radio)
 		cartridge.radio.hostpda = null
 	to_chat(usr, "<span class='notice'>You remove \the [cartridge] from the [name].</span>")
+	playsound(loc, 'sound/machines/id_swipe.ogg', 100, 1)
 	cartridge = null
 
 /obj/item/device/pda/proc/id_check(mob/user as mob, choice as num)//To check for IDs; 1 for in-pda use, 2 for out of pda use.
@@ -1402,11 +1416,11 @@ var/global/list/obj/item/device/pda/PDAs = list()
 					var/reagents_length = A.reagents.reagent_list.len
 					to_chat(user, "<span class='notice'>[reagents_length] chemical agent[reagents_length > 1 ? "s" : ""] found.</span>")
 					for (var/re in A.reagents.reagent_list)
-						to_chat(user,"<span class='notice'>    [re]</span>")
+						to_chat(user, "<span class='notice'>    [re]</span>")
 				else
-					to_chat(user,"<span class='notice'>No active chemical agents found in [A].</span>")
+					to_chat(user, "<span class='notice'>No active chemical agents found in [A].</span>")
 			else
-				to_chat(user,"<span class='notice'>No significantchemical agents found in [A].</span>")
+				to_chat(user, "<span class='notice'>No significantchemical agents found in [A].</span>")
 
 		if(5)
 			analyze_gases(A, user)
@@ -1458,7 +1472,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 		// feature to the PDA, which would better convey the availability of the feature, but this will work for now.
 
 		// Inform the user
-		to_chat(user,"<span class='notice'>Paper scanned and OCRed to notekeeper.</span>") //concept of scanning paper copyright brainoblivion 2009
+		to_chat(user, "<span class='notice'>Paper scanned and OCRed to notekeeper.</span>") //concept of scanning paper copyright brainoblivion 2009
 
 
 /obj/item/device/pda/proc/explode() //This needs tuning. //Sure did.
@@ -1471,7 +1485,7 @@ var/global/list/obj/item/device/pda/PDAs = list()
 
 /obj/item/device/pda/Destroy()
 	PDAs -= src
-	if (src.id && prob(100)) //IDs are kept in 90% of the cases //VOREStation Edit - 100% of the cases
+	if (src.id && prob(100) && !delete_id) //IDs are kept in 90% of the cases //VOREStation Edit - 100% of the cases, excpet when specified otherwise
 		src.id.forceMove(get_turf(src.loc))
 	else
 		QDEL_NULL(src.id)
@@ -1479,7 +1493,9 @@ var/global/list/obj/item/device/pda/PDAs = list()
 	QDEL_NULL(src.pai)
 	return ..()
 
-/obj/item/device/pda/clown/Crossed(AM as mob|obj) //Clown PDA is slippery.
+/obj/item/device/pda/clown/Crossed(atom/movable/AM as mob|obj) //Clown PDA is slippery.
+	if(AM.is_incorporeal())
+		return
 	if (istype(AM, /mob/living))
 		var/mob/living/M = AM
 
@@ -1544,3 +1560,37 @@ var/global/list/obj/item/device/pda/PDAs = list()
 /obj/item/device/pda/emp_act(severity)
 	for(var/atom/A in src)
 		A.emp_act(severity)
+
+/obj/item/device/pda/proc/analyze_air()
+	var/list/results = list()
+	var/turf/T = get_turf(src.loc)
+	if(!isnull(T))
+		var/datum/gas_mixture/environment = T.return_air()
+		var/pressure = environment.return_pressure()
+		var/total_moles = environment.total_moles
+		if (total_moles)
+			var/o2_level = environment.gas["oxygen"]/total_moles
+			var/n2_level = environment.gas["nitrogen"]/total_moles
+			var/co2_level = environment.gas["carbon_dioxide"]/total_moles
+			var/phoron_level = environment.gas["phoron"]/total_moles
+			var/unknown_level =  1-(o2_level+n2_level+co2_level+phoron_level)
+
+			// entry is what the element is describing
+			// Type identifies which unit or other special characters to use
+			// Val is the information reported
+			// Bad_high/_low are the values outside of which the entry reports as dangerous
+			// Poor_high/_low are the values outside of which the entry reports as unideal
+			// Values were extracted from the template itself
+			results = list(
+						list("entry" = "Pressure", "units" = "kPa", "val" = "[round(pressure,0.1)]", "bad_high" = 120, "poor_high" = 110, "poor_low" = 95, "bad_low" = 80),
+						list("entry" = "Temperature", "units" = "&degC", "val" = "[round(environment.temperature-T0C,0.1)]", "bad_high" = 35, "poor_high" = 25, "poor_low" = 15, "bad_low" = 5),
+						list("entry" = "Oxygen", "units" = "kPa", "val" = "[round(o2_level*100,0.1)]", "bad_high" = 140, "poor_high" = 135, "poor_low" = 19, "bad_low" = 17),
+						list("entry" = "Nitrogen", "units" = "kPa", "val" = "[round(n2_level*100,0.1)]", "bad_high" = 105, "poor_high" = 85, "poor_low" = 50, "bad_low" = 40),
+						list("entry" = "Carbon Dioxide", "units" = "kPa", "val" = "[round(co2_level*100,0.1)]", "bad_high" = 10, "poor_high" = 5, "poor_low" = 0, "bad_low" = 0),
+						list("entry" = "Phoron", "units" = "kPa", "val" = "[round(phoron_level*100,0.01)]", "bad_high" = 0.5, "poor_high" = 0, "poor_low" = 0, "bad_low" = 0),
+						list("entry" = "Other", "units" = "kPa", "val" = "[round(unknown_level, 0.01)]", "bad_high" = 1, "poor_high" = 0.5, "poor_low" = 0, "bad_low" = 0)
+						)
+
+	if(isnull(results))
+		results = list(list("entry" = "pressure", "units" = "kPa", "val" = "0", "bad_high" = 120, "poor_high" = 110, "poor_low" = 95, "bad_low" = 80))
+	return results

@@ -123,7 +123,25 @@
 	display_name = "implant, tracking"
 	path = /obj/item/weapon/implant/tracking/weak
 	cost = 0 //VOREStation Edit. Changed cost to 0
-/* VOREStation Edit - Make languages great again
+
+/datum/gear/utility/implant/neural
+	display_name = "implant, neural assistance web"
+	description = "A complex web implanted into the subject, medically in order to compensate for neurological disease."
+	path = /obj/item/weapon/implant/neural
+	cost = 6
+
+/datum/gear/utility/implant/dud1
+	display_name = "implant, head"
+	description = "An implant with no obvious purpose."
+	path = /obj/item/weapon/implant/dud
+	cost = 1
+
+/datum/gear/utility/implant/dud2
+	display_name = "implant, torso"
+	description = "An implant with no obvious purpose."
+	path = /obj/item/weapon/implant/dud/torso
+	cost = 1
+
 /datum/gear/utility/implant/language
 	cost = 2
 	exploitable = 0
@@ -137,7 +155,7 @@
 	display_name = "vocal synthesizer, Skrellian"
 	description = "A surgically implanted vocal synthesizer which allows the owner to speak Common Skrellian, if they know it."
 	path = /obj/item/weapon/implant/language/skrellian
-*/
+
 /datum/gear/utility/pen
 	display_name = "Fountain Pen"
 	path = /obj/item/weapon/pen/fountain
@@ -199,7 +217,7 @@ modular computers
 /datum/gear/utility/customlaptop
 	display_name = "laptop computer, custom"
 	path = /obj/item/modular_computer/laptop/preset/
-	cost = 6
+	cost = 6 //VOREStation Edit
 
 /datum/gear/utility/customlaptop/New()
 	..()

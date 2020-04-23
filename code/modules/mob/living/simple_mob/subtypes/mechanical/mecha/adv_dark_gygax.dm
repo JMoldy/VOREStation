@@ -77,10 +77,11 @@
 	catalogue_data = list(/datum/category_item/catalogue/technology/adv_dark_gygax)
 	icon_state = "darkgygax_adv"
 	wreckage = /obj/structure/loot_pile/mecha/gygax/dark/adv
-	icon_scale = 1.5
+	icon_scale_x = 1.5
+	icon_scale_y = 1.5
 	movement_shake_radius = 14
 
-	maxHealth = 450
+	maxHealth = 350 //VOREStation Edit
 	deflect_chance = 25
 	has_repair_droid = TRUE
 	armor = list(
@@ -133,7 +134,7 @@
 	..()
 	set_pixel_speed(0.5)
 
-#define ELECTRIC_ZAP_POWER 20000
+#define ELECTRIC_ZAP_POWER 15000 //VOREStation Edit
 
 // Charges a tesla shot, while emitting a dangerous electric field. The exosuit is immune to electric damage while this is ongoing.
 // It also briefly blinds anyone looking directly at the mech without flash protection.

@@ -31,7 +31,11 @@
 	battery_module = new/obj/item/weapon/computer_hardware/battery_module/advanced(src)
 	battery_module.charge_to_full()
 
-	//VOREstation Add Begin
+/obj/item/modular_computer/laptop/preset/custom_loadout/elite
+	icon_state_unpowered = "adv-laptop-open"
+	icon_state = "adv-laptop-open"
+	icon_state_closed = "adv-laptop-closed"
+
 /obj/item/modular_computer/laptop/preset/custom_loadout/elite/install_default_hardware()
 	..()
 	processor_unit = new/obj/item/weapon/computer_hardware/processor_unit(src)
@@ -42,4 +46,3 @@
 	card_slot = new/obj/item/weapon/computer_hardware/card_slot(src)
 	battery_module = new/obj/item/weapon/computer_hardware/battery_module/super(src)
 	battery_module.charge_to_full()
-	//VOREstation Add End

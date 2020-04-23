@@ -10,7 +10,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear all mob speech as a ghost.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TGEars") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -25,7 +25,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] see all emotes as a ghost.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TGVision") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -40,7 +40,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear all radios as a ghost.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TGRadio") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -55,7 +55,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear dead chat as a ghost.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TDeadChat") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -70,7 +70,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(/datum/client_preference/show_ooc)) ? "now" : "no longer"] hear global out of character chat.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TOOC") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -85,9 +85,24 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear local out of character chat.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TLOOC") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
+
+/client/verb/toggle_precision_placement()
+	set name = "Enable/Disable Precision Placement"
+	set category = "Preferences"
+	set desc = "Toggles precise placement of objects on tables."
+
+	var/pref_path = /datum/client_preference/precision_placement
+
+	toggle_preference(pref_path)
+
+	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] place items where your cursor is on the table.")
+
+	SScharacter_setup.queue_preferences_save(prefs)
+
+	feedback_add_details("admin_verb","TPIP") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
 /client/verb/toggle_typing()
 	set name = "Show/Hide Typing Indicator"
@@ -100,7 +115,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] have the speech indicator.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TTIND") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -115,7 +130,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] receive noise from admin messages.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TAHelp") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -130,7 +145,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear music in the lobby.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TLobMusic") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -145,7 +160,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear MIDIs from admins.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TAMidis") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -160,7 +175,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear ambient noise.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TAmbience") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -175,7 +190,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear weather sounds.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TWeatherSounds") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -190,7 +205,7 @@
 
 	to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear a hum from the supermatter.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TSupermatterHum") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -203,9 +218,9 @@
 
 	toggle_preference(pref_path)
 
-	src << "You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear jukebox music."
+	to_chat(src, "You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear jukebox music.")
 
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TJukebox") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -218,11 +233,41 @@
 	if(!role_flag)	return
 
 	prefs.be_special ^= role_flag
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	to_chat(src,"You will [(prefs.be_special & role_flag) ? "now" : "no longer"] be considered for [role] events (where possible).")
 
 	feedback_add_details("admin_verb","TBeSpecial") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
+
+/client/verb/toggle_air_pump_hum()
+	set name = "Toggle Air Pump Noise"
+	set category = "Preferences"
+	set desc = "Toggles Air Pumps humming"
+
+	var/pref_path = /datum/client_preference/air_pump_noise
+
+	toggle_preference(pref_path)
+
+	to_chat(src, "You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear air pumps hum, start, and stop.")
+
+	SScharacter_setup.queue_preferences_save(prefs)
+
+	feedback_add_details("admin_verb","TAirPumpNoise")
+
+/client/verb/toggle_drop_sounds()
+	set name = "Toggle Dropped Item Sounds"
+	set category = "Preferences"
+	set desc = "Toggles sounds when items are dropped or thrown."
+
+	var/pref_path = /datum/client_preference/drop_sounds
+
+	toggle_preference(pref_path)
+
+	to_chat(src, "You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] hear sounds when items are dropped or thrown.")
+
+	SScharacter_setup.queue_preferences_save(prefs)
+
+	feedback_add_details("admin_verb", "TDropSounds")
 
 /client/verb/toggle_safe_firing()
 	set name = "Toggle Gun Firing Intent Requirement"
@@ -231,7 +276,7 @@
 
 	var/pref_path = /datum/client_preference/safefiring
 	toggle_preference(pref_path)
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	to_chat(src,"You will now use [(is_preference_enabled(/datum/client_preference/safefiring)) ? "safe" : "dangerous"] firearms firing.")
 
@@ -244,7 +289,7 @@
 
 	var/pref_path = /datum/client_preference/mob_tooltips
 	toggle_preference(pref_path)
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	to_chat(src,"You will now [(is_preference_enabled(/datum/client_preference/mob_tooltips)) ? "see" : "not see"] mob tooltips.")
 
@@ -257,11 +302,44 @@
 
 	var/pref_path = /datum/client_preference/instrument_toggle
 	toggle_preference(pref_path)
-	prefs.save_preferences()
+	SScharacter_setup.queue_preferences_save(prefs)
 
 	to_chat(src, "You will now [(is_preference_enabled(/datum/client_preference/instrument_toggle)) ? "hear" : "not hear"] instruments being played.")
 
 	feedback_add_details("admin_verb","THInstm") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
+
+/client/verb/toggle_vchat()
+	set name = "Toggle VChat"
+	set category = "Preferences"
+	set desc = "Enable/Disable VChat. Reloading VChat and/or reconnecting required to affect changes."
+
+	var/pref_path = /datum/client_preference/vchat_enable
+	toggle_preference(pref_path)
+	SScharacter_setup.queue_preferences_save(prefs)
+
+	to_chat(src, "You have toggled VChat [is_preference_enabled(pref_path) ? "on" : "off"]. \
+		You will have to reload VChat and/or reconnect to the server for these changes to take place. \
+		VChat message persistence is not guaranteed if you change this again before the start of the next round.")
+
+
+// Not attached to a pref datum because those are strict binary toggles
+/client/verb/toggle_examine_mode()
+	set name = "Toggle Examine Mode"
+	set category = "Preferences"
+	set desc = "Control the additional behaviour of examining things"
+
+	examine_text_mode++
+	examine_text_mode %= EXAMINE_MODE_MAX // This cycles through them because if you're already specifically being routed to the examine panel, you probably don't need to have the extra text printed to chat
+	switch(examine_text_mode)				// ... And I only wanted to add one verb
+		if(EXAMINE_MODE_DEFAULT)
+			to_chat(src, "Examining things will only output the base examine text, and you will not be redirected to the examine panel automatically.")
+
+		if(EXAMINE_MODE_INCLUDE_USAGE)
+			to_chat(src, "Examining things will also print any extra usage information normally included in the examine panel to the chat.")
+
+		if(EXAMINE_MODE_SWITCH_TO_PANEL)
+			to_chat(src, "Examining things will direct you to the examine panel, where you can view extended information about the thing.")
+
 
 //Toggles for Staff
 //Developers
@@ -276,7 +354,7 @@
 	if(check_rights(R_ADMIN|R_DEBUG))
 		toggle_preference(pref_path)
 		to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] receive debug logs.")
-		prefs.save_preferences()
+		SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TBeSpecial") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -291,6 +369,6 @@
 	if(check_rights(R_ADMIN|R_MOD))
 		toggle_preference(pref_path)
 		to_chat(src,"You will [ (is_preference_enabled(pref_path)) ? "now" : "no longer"] receive attack logs.")
-		prefs.save_preferences()
+		SScharacter_setup.queue_preferences_save(prefs)
 
 	feedback_add_details("admin_verb","TBeSpecial") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!

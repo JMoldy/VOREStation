@@ -236,6 +236,8 @@
 		mymob.internals = new /obj/screen()
 		mymob.internals.icon = ui_style
 		mymob.internals.icon_state = "internal0"
+		if(istype(target.internal, /obj/item/weapon/tank)) //Internals on already? Iight, prove it
+			mymob.internals.icon_state = "internal1"
 		mymob.internals.name = "internal"
 		mymob.internals.screen_loc = ui_internal
 		hud_elements |= mymob.internals
@@ -293,6 +295,23 @@
 		mymob.nutrition_icon.screen_loc = ui_nutrition
 		hud_elements |= mymob.nutrition_icon
 
+	//VOREStation Addition begin
+	mymob.shadekin_dark_display = new /obj/screen/shadekin/darkness()
+	mymob.shadekin_dark_display.screen_loc = ui_shadekin_dark_display
+	mymob.shadekin_dark_display.icon_state = "dark"
+	hud_elements |= mymob.shadekin_dark_display
+
+	mymob.shadekin_energy_display = new /obj/screen/shadekin/energy()
+	mymob.shadekin_energy_display.screen_loc = ui_shadekin_energy_display
+	mymob.shadekin_energy_display.icon_state = "energy0"
+	hud_elements |= mymob.shadekin_energy_display
+
+	mymob.xenochimera_danger_display = new /obj/screen/xenochimera/danger_level()
+	mymob.xenochimera_danger_display.screen_loc = ui_xenochimera_danger_display
+	mymob.xenochimera_danger_display.icon_state = "danger00"
+	hud_elements |= mymob.xenochimera_danger_display
+	//VOREStation Addition end
+
 	mymob.ling_chem_display = new /obj/screen/ling/chems()
 	mymob.ling_chem_display.screen_loc = ui_ling_chemical_display
 	mymob.ling_chem_display.icon_state = "ling_chems"
@@ -341,11 +360,13 @@
 	mymob.radio_use_icon.color = ui_color
 	mymob.radio_use_icon.alpha = ui_alpha
 
-	mymob.client.screen = list()
+	if(mymob.client)
+		mymob.client.screen = list()
 
-	mymob.client.screen += hud_elements
-	mymob.client.screen += src.adding + src.hotkeybuttons
-	mymob.client.screen += mymob.client.void
+		mymob.client.screen += hud_elements
+		mymob.client.screen += src.adding + src.hotkeybuttons
+		mymob.client.screen += mymob.client.void
+
 	inventory_shown = 0
 
 	return

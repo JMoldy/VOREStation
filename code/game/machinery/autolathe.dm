@@ -5,9 +5,12 @@
 	icon_state = "autolathe"
 	density = 1
 	anchored = 1
-	use_power = 1
+	use_power = USE_POWER_IDLE
 	idle_power_usage = 10
 	active_power_usage = 2000
+	clicksound = "keyboard"
+	clickvol = 30
+
 	circuit = /obj/item/weapon/circuitboard/autolathe
 	var/datum/category_collection/autolathe/machine_recipes
 	var/list/stored_material =  list(DEFAULT_WALL_MATERIAL = 0, "glass" = 0)
@@ -84,16 +87,17 @@
 			else
 				//Make sure it's buildable and list requires resources.
 				for(var/material in R.resources)
-					var/sheets = round(stored_material[material]/round(R.resources[material]*mat_efficiency))
+					var/coeff = (R.no_scale ? 1 : mat_efficiency) //stacks are unaffected by production coefficient
+					var/sheets = round(stored_material[material]/round(R.resources[material]*coeff))
 					if(isnull(max_sheets) || max_sheets > sheets)
 						max_sheets = sheets
-					if(!isnull(stored_material[material]) && stored_material[material] < round(R.resources[material]*mat_efficiency))
+					if(!isnull(stored_material[material]) && stored_material[material] < round(R.resources[material]*coeff))
 						can_make = 0
 					if(!comma)
 						comma = 1
 					else
 						material_string += ", "
-					material_string += "[round(R.resources[material] * mat_efficiency)] [material]"
+					material_string += "[round(R.resources[material] * coeff)] [material]"
 				material_string += ".<br></td>"
 				//Build list of multipliers for sheets.
 				if(R.is_stack)
@@ -107,12 +111,6 @@
 			dat += "<tr><td width = 180>[R.hidden ? "<font color = 'red'>*</font>" : ""]<b>[can_make ? "<a href='?src=\ref[src];make=\ref[R];multiplier=1'>" : ""][R.name][can_make ? "</a>" : ""]</b>[R.hidden ? "<font color = 'red'>*</font>" : ""][multiplier_string.Join()]</td><td align = right>[material_string.Join()]</tr>"
 
 		dat += "</table><hr>"
-	//Hacking.
-	if(panel_open)
-		dat += "<h2>Maintenance Panel</h2>"
-		dat += wires.GetInteractWindow()
-
-		dat += "<hr>"
 
 	user << browse(dat.Join(), "window=autolathe")
 	onclose(user, "autolathe")
@@ -135,8 +133,8 @@
 
 	if(panel_open)
 		//Don't eat multitools or wirecutters used on an open lathe.
-		if(istype(O, /obj/item/device/multitool) || O.is_wirecutter())
-			attack_hand(user)
+		if(O.is_multitool() || O.is_wirecutter())
+			wires.Interact(user)
 			return
 
 	if(O.loc != user && !(istype(O,/obj/item/stack)))
@@ -249,25 +247,26 @@
 			return
 
 		busy = 1
-		update_use_power(2)
+		update_use_power(USE_POWER_ACTIVE)
 
 		//Check if we still have the materials.
+		var/coeff = (making.no_scale ? 1 : mat_efficiency) //stacks are unaffected by production coefficient
 		for(var/material in making.resources)
 			if(!isnull(stored_material[material]))
-				if(stored_material[material] < round(making.resources[material] * mat_efficiency) * multiplier)
+				if(stored_material[material] < round(making.resources[material] * coeff) * multiplier)
 					return
 
 		//Consume materials.
 		for(var/material in making.resources)
 			if(!isnull(stored_material[material]))
-				stored_material[material] = max(0, stored_material[material] - round(making.resources[material] * mat_efficiency) * multiplier)
+				stored_material[material] = max(0, stored_material[material] - round(making.resources[material] * coeff) * multiplier)
 
 		update_icon() // So lid closes
 
 		sleep(build_time)
 
 		busy = 0
-		update_use_power(1)
+		update_use_power(USE_POWER_IDLE)
 		update_icon() // So lid opens
 
 		//Sanity check.
@@ -275,9 +274,13 @@
 
 		//Create the desired item.
 		var/obj/item/I = new making.path(src.loc)
-		if(multiplier > 1 && istype(I, /obj/item/stack))
-			var/obj/item/stack/S = I
-			S.amount = multiplier
+		if(multiplier > 1)
+			if(istype(I, /obj/item/stack))
+				var/obj/item/stack/S = I
+				S.amount = multiplier
+			else
+				for(multiplier; multiplier > 1; --multiplier) // Create multiple items if it's not a stack.
+					new making.path(src.loc)
 
 	updateUsrDialog()
 

@@ -1,7 +1,7 @@
 /obj/structure/largecrate
 	name = "large crate"
 	desc = "A hefty wooden crate."
-	icon = 'icons/obj/storage.dmi'
+	icon = 'icons/obj/storage_vr.dmi'	//VOREStation Edit
 	icon_state = "densecrate"
 	density = 1
 	var/list/starts_with
@@ -64,10 +64,9 @@
 	icon_state = "vehiclecrate"
 
 /obj/structure/largecrate/vehicle/Initialize()
-	..()
-	spawn(1)
-		for(var/obj/O in contents)
-			O.update_icon()
+	. = ..()
+	for(var/obj/O in contents)
+		O.update_icon()
 
 /obj/structure/largecrate/vehicle/bike
 	name = "spacebike crate"
@@ -82,10 +81,11 @@
 	starts_with = list(/obj/structure/vehiclecage/quadtrailer)
 
 /obj/structure/largecrate/animal
-	icon_state = "mulecrate"
+	icon_state = "lisacrate"	//VOREStation Edit
 
 /obj/structure/largecrate/animal/mulebot
 	name = "Mulebot crate"
+	icon_state = "mulecrate"	//VOREStation Edit
 	starts_with = list(/mob/living/bot/mulebot)
 
 /obj/structure/largecrate/animal/corgi

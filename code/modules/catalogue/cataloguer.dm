@@ -25,6 +25,7 @@ GLOBAL_LIST_EMPTY(all_cataloguers)
 	w_class = ITEMSIZE_NORMAL
 	origin_tech = list(TECH_MATERIAL = 2, TECH_DATA = 3, TECH_MAGNET = 3)
 	force = 0
+	slot_flags = SLOT_BELT
 	var/points_stored = 0 // Amount of 'exploration points' this device holds.
 	var/scan_range = 3 // How many tiles away it can scan. Changing this also changes the box size.
 	var/credit_sharing_range = 14 // If another person is within this radius, they will also be credited with a successful scan.
@@ -312,3 +313,15 @@ GLOBAL_LIST_EMPTY(all_cataloguers)
 	interact(usr) // So it refreshes the window.
 	return 1
 
+/obj/item/device/cataloguer/attackby(obj/item/weapon/W, mob/user)
+	if(istype(W, /obj/item/weapon/card/id) && !busy)
+		busy = TRUE
+		var/obj/item/weapon/card/id/ID = W
+		if(points_stored)
+			ID.survey_points += points_stored
+			points_stored = 0
+			to_chat(user, "<span class='notice'>You swipe the id over \the [src].</span>")
+		else
+			to_chat(user, "<span class='notice'>\The [src] has no points available.</span>")
+		busy = FALSE
+	return ..()

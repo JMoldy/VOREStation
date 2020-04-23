@@ -37,7 +37,7 @@
 	icon_state = "hydrotray3"
 	density = 1
 	anchored = 1
-	use_power = 1
+	use_power = USE_POWER_IDLE
 
 	var/obj/item/seeds/seed // Currently loaded seed packet.
 	var/obj/item/weapon/disk/botany/loaded_disk //Currently loaded data disk.
@@ -68,15 +68,15 @@
 	active = 0
 	if(failed_task)
 		failed_task = 0
-		visible_message("\icon[src] [src] pings unhappily, flashing a red warning light.")
+		visible_message("[bicon(src)] [src] pings unhappily, flashing a red warning light.")
 	else
-		visible_message("\icon[src] [src] pings happily.")
+		visible_message("[bicon(src)] [src] pings happily.")
 
 	if(eject_disk)
 		eject_disk = 0
 		if(loaded_disk)
 			loaded_disk.loc = get_turf(src)
-			visible_message("\icon[src] [src] beeps and spits out [loaded_disk].")
+			visible_message("[bicon(src)] [src] beeps and spits out [loaded_disk].")
 			loaded_disk = null
 
 /obj/machinery/botany/attackby(obj/item/weapon/W as obj, mob/user as mob)
@@ -94,10 +94,16 @@
 			to_chat(user, "You load [W] into [src].")
 		return
 
+//TFF 3/6/19 - fix infinite frame creation, ported from Cit RP - also allow movement of hydroponic-related machines.
 	if(default_deconstruction_screwdriver(user, W))
 		return
-	if(default_deconstruction_crowbar(user, W))
+	if(W.is_wrench())
+		playsound(src, W.usesound, 100, 1)
+		to_chat(user, "<span class='notice'>You [anchored ? "un" : ""]secure \the [src].</span>")
+		anchored = !anchored
 		return
+//	if(default_deconstruction_crowbar(user, W))	//No circuit boards to give.
+//		return
 	if(istype(W,/obj/item/weapon/disk/botany))
 		if(loaded_disk)
 			to_chat(user, "There is already a data disk loaded.")
@@ -184,14 +190,14 @@
 			plant_controller.seeds[seed.seed.name] = seed.seed
 
 		seed.update_seed()
-		visible_message("\icon[src] [src] beeps and spits out [seed].")
+		visible_message("[bicon(src)] [src] beeps and spits out [seed].")
 
 		seed = null
 
 	if(href_list["eject_disk"])
 		if(!loaded_disk) return
 		loaded_disk.loc = get_turf(src)
-		visible_message("\icon[src] [src] beeps and spits out [loaded_disk].")
+		visible_message("[bicon(src)] [src] beeps and spits out [loaded_disk].")
 		loaded_disk = null
 
 	usr.set_machine(src)

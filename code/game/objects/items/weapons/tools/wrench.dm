@@ -15,6 +15,7 @@
 	attack_verb = list("bashed", "battered", "bludgeoned", "whacked")
 	usesound = 'sound/items/ratchet.ogg'
 	toolspeed = 1
+	drop_sound = 'sound/items/drop/sword.ogg'
 
 /obj/item/weapon/tool/wrench/is_wrench()
 	return TRUE
@@ -44,7 +45,7 @@
 /obj/item/weapon/tool/wrench/hybrid/is_wrench()
 	if(prob(10))
 		var/turf/T = get_turf(src)
-		radiation_repository.radiate(get_turf(src), 5)
+		SSradiation.radiate(get_turf(src), 5)
 		T.visible_message("<span class='alien'>\The [src] shudders!</span>")
 		return FALSE
 	return TRUE

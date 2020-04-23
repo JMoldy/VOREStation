@@ -27,8 +27,8 @@
 	for(var/obj/O in src)
 		O.hide(1)
 
-/turf/simulated/wall/New(var/newloc, var/materialtype, var/rmaterialtype, var/girdertype)
-	..(newloc)
+/turf/simulated/wall/Initialize(mapload, materialtype, rmaterialtype, girdertype)
+	. = ..()
 	icon_state = "blank"
 	if(!materialtype)
 		materialtype = DEFAULT_WALL_MATERIAL
@@ -153,7 +153,7 @@
 	visible_message("<span class='danger'>\The [src] spontaneously combusts!.</span>") //!!OH SHIT!!
 	return
 
-/turf/simulated/wall/proc/take_damage(dam)
+/turf/simulated/wall/take_damage(dam)
 	if(dam)
 		damage = max(0, damage + dam)
 		update_damage()
@@ -231,10 +231,25 @@
 // Wall-rot effect, a nasty fungus that destroys walls.
 /turf/simulated/wall/proc/rot()
 	if(locate(/obj/effect/overlay/wallrot) in src)
-		return
+		return FALSE
+
+	// Wall-rot can't go onto walls that are surrounded in all four cardinal directions.
+	// Because of spores, or something. It's actually to avoid the pain that is removing wallrot surrounded by
+	// four r-walls.
+	var/at_least_one_open_turf = FALSE
+	for(var/direction in GLOB.cardinal)
+		var/turf/T = get_step(src, direction)
+		if(!T.check_density())
+			at_least_one_open_turf = TRUE
+			break
+
+	if(!at_least_one_open_turf)
+		return FALSE
+
 	var/number_rots = rand(2,3)
 	for(var/i=0, i<number_rots, i++)
 		new/obj/effect/overlay/wallrot(src)
+	return TRUE
 
 /turf/simulated/wall/proc/can_melt()
 	if(material.flags & MATERIAL_UNMELTABLE)
@@ -274,7 +289,7 @@
 	if(!total_radiation)
 		return
 
-	radiation_repository.radiate(src, total_radiation)
+	SSradiation.radiate(src, total_radiation)
 	return total_radiation
 
 /turf/simulated/wall/proc/burn(temperature)

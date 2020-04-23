@@ -16,7 +16,7 @@
 	dsma.blend_mode = BLEND_ADD
 	dsoverlay.appearance = dsma
 
-	selected_image = image(icon = 'icons/mob/screen1.dmi', loc = src, icon_state = "centermarker")
+	selected_image = image(icon = buildmode_hud, loc = src, icon_state = "ai_sel")
 
 /mob/living/Destroy()
 	dsoverlay.loc = null //I'll take my coat with me
@@ -32,6 +32,8 @@
 	if(buckled)
 		buckled.unbuckle_mob(src, TRUE)
 	qdel(selected_image)
+	QDEL_NULL(vorePanel) //VOREStation Add
+	QDEL_LIST_NULL(vore_organs) //VOREStation Add
 	return ..()
 
 //mob verbs are faster than object verbs. See mob/verb/examine.
@@ -245,10 +247,9 @@ default behaviour is:
 /mob/living/proc/updatehealth()
 	if(status_flags & GODMODE)
 		health = 100
-		stat = CONSCIOUS
+		set_stat(CONSCIOUS)
 	else
 		health = getMaxHealth() - getOxyLoss() - getToxLoss() - getFireLoss() - getBruteLoss() - getCloneLoss() - halloss
-
 
 //This proc is used for mobs which are affected by pressure to calculate the amount of pressure that actually
 //affects them once clothing is factored in. ~Errorage
@@ -259,7 +260,7 @@ default behaviour is:
 //sort of a legacy burn method for /electrocute, /shock, and the e_chair
 /mob/living/proc/burn_skin(burn_amount)
 	if(istype(src, /mob/living/carbon/human))
-		//world << "DEBUG: burn_skin(), mutations=[mutations]"
+		//to_world("DEBUG: burn_skin(), mutations=[mutations]")
 		if(mShock in src.mutations) //shockproof
 			return 0
 		if (COLD_RESISTANCE in src.mutations) //fireproof
@@ -293,7 +294,7 @@ default behaviour is:
 		if(actual < desired)
 			temperature = desired
 //	if(istype(src, /mob/living/carbon/human))
-//		world << "[src] ~ [src.bodytemperature] ~ [temperature]"
+//		to_world("[src] ~ [src.bodytemperature] ~ [temperature]")
 	return temperature
 
 
@@ -449,7 +450,7 @@ default behaviour is:
 			if(!isnull(M.incoming_hal_damage_percent))
 				amount *= M.incoming_hal_damage_percent
 			if(!isnull(M.disable_duration_percent))
-				amount *= M.incoming_hal_damage_percent
+				amount *= M.disable_duration_percent
 	else if(amount < 0)
 		for(var/datum/modifier/M in modifiers)
 			if(!isnull(M.incoming_healing_percent))
@@ -742,7 +743,7 @@ default behaviour is:
 		timeofdeath = 0
 
 	// restore us to conciousness
-	stat = CONSCIOUS
+	set_stat(CONSCIOUS)
 
 	// make the icons look correct
 	regenerate_icons()
@@ -773,9 +774,8 @@ default behaviour is:
 		else
 			to_chat(usr, "[src] does not have any stored infomation!")
 	else
-		usr << "OOC Metadata is not supported by this server!"
+		to_chat(usr, "OOC Metadata is not supported by this server!")
 	//VOREStation Edit End - Making it so SSD people have prefs with fallback to original style.
-	return
 
 /mob/living/Move(a, b, flag)
 	if (buckled && buckled.loc != a) //not updating position
@@ -1048,6 +1048,14 @@ default behaviour is:
 			else
 				to_chat(src, "<span class='warning'>You feel nauseous...</span>")
 
+				if(ishuman(src))
+					var/mob/living/carbon/human/Hu = src
+					if(CE_ANTACID in Hu.chem_effects)
+						if(prob(min(90, Hu.chem_effects[CE_ANTACID] * 15)))
+							spawn(rand(30 SECONDS, 2 MINUTES))
+								lastpuke = FALSE
+							return
+
 				spawn()
 					if(!skip_wait)
 						sleep(150)	//15 seconds until second warning
@@ -1060,7 +1068,7 @@ default behaviour is:
 							var/mob/living/carbon/human/H = src
 							if(!H.isSynthetic())
 								var/obj/item/organ/internal/liver/L = H.internal_organs_by_name["liver"]
-								if(L.is_broken())
+								if(!L || L.is_broken())
 									blood_vomit = 1
 
 					Stun(5)
@@ -1104,10 +1112,11 @@ default behaviour is:
 					pixel_y = V.mob_offset_y
 		else if(buckled)
 			anchored = 1
-			canmove = 0
+			canmove = 1 //The line above already makes the chair not swooce away if the sitter presses a button. No need to incapacitate them as a criminally large amount of mechanics read this var as a type of stun.
 			if(istype(buckled))
 				if(buckled.buckle_lying != -1)
 					lying = buckled.buckle_lying
+					canmove = buckled.buckle_movable
 				if(buckled.buckle_movable)
 					anchored = 0
 					canmove = 1
@@ -1174,18 +1183,19 @@ default behaviour is:
 
 /mob/living/update_transform()
 	// First, get the correct size.
-	var/desired_scale = size_multiplier //VOREStation edit
+	var/desired_scale_x = size_multiplier //VOREStation edit
+	var/desired_scale_y = size_multiplier //VOREStation edit
 	for(var/datum/modifier/M in modifiers)
-		if(!isnull(M.icon_scale_percent))
-			desired_scale *= M.icon_scale_percent
+		if(!isnull(M.icon_scale_x_percent))
+			desired_scale_x *= M.icon_scale_x_percent
+		if(!isnull(M.icon_scale_y_percent))
+			desired_scale_y *= M.icon_scale_y_percent
 
 	// Now for the regular stuff.
 	var/matrix/M = matrix()
-	M.Scale(desired_scale)
-	M.Translate(0, 16*(desired_scale-1))
-	src.transform = M
-	//animate(src, transform = M, time = 10) //VOREStation edit
-
+	M.Scale(desired_scale_x, desired_scale_y)
+	M.Translate(0, (vis_height/2)*(desired_scale_y-1)) //VOREStation edit
+	src.transform = M //VOREStation edit
 
 // This handles setting the client's color variable, which makes everything look a specific color.
 // This proc is here so it can be called without needing to check if the client exists, or if the client relogs.
@@ -1280,6 +1290,7 @@ default behaviour is:
 			var/turf/end_T = get_turf(target)
 			if(end_T)
 				add_attack_logs(src,M,"Thrown via grab to [end_T.x],[end_T.y],[end_T.z]")
+			src.drop_from_inventory(G)
 
 	src.drop_from_inventory(item)
 	if(!item || !isturf(item.loc))
@@ -1294,6 +1305,9 @@ default behaviour is:
 		src.inertia_dir = get_dir(target, src)
 		step(src, inertia_dir)
 
+	if(istype(item,/obj/item))
+		var/obj/item/W = item
+		W.randpixel_xy()
 
 /*
 	if(istype(src.loc, /turf/space) || (src.flags & NOGRAV)) //they're in space, move em one space in the opposite direction

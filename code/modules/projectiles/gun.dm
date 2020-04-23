@@ -49,6 +49,7 @@
 	origin_tech = list(TECH_COMBAT = 1)
 	attack_verb = list("struck", "hit", "bashed")
 	zoomdevicename = "scope"
+	drop_sound = 'sound/items/drop/gun.ogg'
 
 	var/automatic = 0
 	var/burst = 1
@@ -180,15 +181,15 @@
 	if(dna_lock && attached_lock.stored_dna)
 		if(!authorized_user(user))
 			if(attached_lock.safety_level == 0)
-				to_chat(M, "<span class='danger'>\The [src] buzzes in dissapoint and displays an invalid DNA symbol.</span>")
+				to_chat(M, "<span class='danger'>\The [src] buzzes in dissapointment and displays an invalid DNA symbol.</span>")
 				return 0
 			if(!attached_lock.exploding)
 				if(attached_lock.safety_level == 1)
 					to_chat(M, "<span class='danger'>\The [src] hisses in dissapointment.</span>")
 					visible_message("<span class='game say'><span class='name'>\The [src]</span> announces, \"Self-destruct occurring in ten seconds.\"</span>", "<span class='game say'><span class='name'>\The [src]</span> announces, \"Self-destruct occurring in ten seconds.\"</span>")
+					attached_lock.exploding = 1
 					spawn(100)
 						explosion(src, 0, 0, 3, 4)
-						attached_lock.exploding = 1
 						sleep(1)
 						qdel(src)
 					return 0
@@ -388,6 +389,9 @@
 			handle_click_empty(user)
 			break
 
+		if(i == 1) // So one burst only makes one message and not 3+ messages.
+			handle_firing_text(user, target, pointblank, reflex)
+
 		process_accuracy(projectile, user, target, i, held_twohanded)
 
 		if(pointblank)
@@ -415,14 +419,6 @@
 	if(user.item_is_in_hands(src) && user.hands_are_full())
 		if(one_handed_penalty >= 20)
 			to_chat(user, "<span class='warning'>You struggle to keep \the [src] pointed at the correct position with just one hand!</span>")
-
-	var/target_for_log
-	if(ismob(target))
-		target_for_log = target
-	else
-		target_for_log = "[target.name]"
-
-	add_attack_logs(user,target_for_log,"Fired gun [src.name] ([reflex ? "REFLEX" : "MANUAL"])")
 
 	//update timing
 	user.setClickCooldown(DEFAULT_QUICK_COOLDOWN)
@@ -534,11 +530,9 @@
 		src.visible_message("*click click*")
 	playsound(src.loc, 'sound/weapons/empty.ogg', 100, 1)
 
-//called after successfully firing
-/obj/item/weapon/gun/proc/handle_post_fire(mob/user, atom/target, var/pointblank=0, var/reflex=0)
-	if(fire_anim)
-		flick(fire_anim, src)
-
+// Called when the user is about to fire.
+// Moved from handle_post_fire() because if using a laser, the message for when someone got shot would show up before the firing message.
+/obj/item/weapon/gun/proc/handle_firing_text(mob/user, atom/target, pointblank = FALSE, reflex = FALSE)
 	if(silenced)
 		to_chat(user, "<span class='warning'>You fire \the [src][pointblank ? " point blank at \the [target]":""][reflex ? " by reflex":""]</span>")
 		for(var/mob/living/L in oview(2,user))
@@ -554,6 +548,19 @@
 			"<span class='warning'>You fire \the [src][pointblank ? " point blank at \the [target]":""][reflex ? " by reflex":""]!</span>",
 			"You hear a [fire_sound_text]!"
 			)
+
+	var/target_for_log
+	if(ismob(target))
+		target_for_log = target
+	else
+		target_for_log = "[target.name]"
+
+	add_attack_logs(user, target_for_log, "Fired gun '[src.name]' ([reflex ? "REFLEX" : "MANUAL"])")
+
+//called after successfully firing
+/obj/item/weapon/gun/proc/handle_post_fire(mob/user, atom/target, var/pointblank=0, var/reflex=0)
+	if(fire_anim)
+		flick(fire_anim, src)
 
 	if(muzzle_flash)
 		set_light(muzzle_flash)
@@ -692,18 +699,18 @@
 	var/obj/item/projectile/in_chamber = consume_next_projectile()
 	if (istype(in_chamber))
 		user.visible_message("<span class = 'warning'>[user] pulls the trigger.</span>")
-		play_fire_sound()
-		if(istype(in_chamber, /obj/item/projectile/beam/lastertag))
+		play_fire_sound(M, in_chamber)
+		if(istype(in_chamber, /obj/item/projectile/beam/lasertag))
 			user.show_message("<span class = 'warning'>You feel rather silly, trying to commit suicide with a toy.</span>")
 			mouthshoot = 0
 			return
 
 		in_chamber.on_hit(M)
-		if (in_chamber.damage_type != HALLOSS)
+		if(in_chamber.damage_type != HALLOSS && !in_chamber.nodamage)
 			log_and_message_admins("[key_name(user)] commited suicide using \a [src]")
 			user.apply_damage(in_chamber.damage*2.5, in_chamber.damage_type, "head", used_weapon = "Point blank shot in the mouth with \a [in_chamber]", sharp=1)
 			user.death()
-		else
+		else if(in_chamber.damage_type == HALLOSS)
 			to_chat(user, "<span class = 'notice'>Ow...</span>")
 			user.apply_effect(110,AGONY,0)
 		qdel(in_chamber)

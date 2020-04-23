@@ -14,13 +14,14 @@
 	name = "tile"
 	singular_name = "tile"
 	desc = "A non-descript floor tile"
+	randpixel = 7
 	w_class = ITEMSIZE_NORMAL
 	max_amount = 60
+	drop_sound = 'sound/items/drop/axe.ogg'
 
 /obj/item/stack/tile/New()
 	..()
-	pixel_x = rand(-7, 7)
-	pixel_y = rand(-7, 7)
+	randpixel_xy()
 
 /*
  * Grass
@@ -37,6 +38,7 @@
 	flags = 0
 	origin_tech = list(TECH_BIO = 1)
 	no_variants = FALSE
+	drop_sound = 'sound/items/drop/herb.ogg'
 /*
  * Wood
  */
@@ -51,6 +53,7 @@
 	throw_range = 20
 	flags = 0
 	no_variants = FALSE
+	drop_sound = 'sound/items/drop/wooden.ogg'
 
 /obj/item/stack/tile/wood/sif
 	name = "alien wood tile"
@@ -80,6 +83,7 @@
 	throw_range = 20
 	flags = 0
 	no_variants = FALSE
+	drop_sound = 'sound/items/drop/clothing.ogg'
 
 /obj/item/stack/tile/carpet/teal
 	name = "teal carpet"
@@ -203,3 +207,11 @@
 	singular_name = "roofing"
 	desc = "A section of roofing material. You can use it to repair the ceiling, or expand it."
 	icon_state = "techtile_grid"
+
+/obj/item/stack/tile/roofing/cyborg
+	name = "roofing synthesizer"
+	desc = "A device that makes roofing tiles."
+	uses_charge = 1
+	charge_costs = list(250)
+	stacktype = /obj/item/stack/tile/roofing
+	build_type = /obj/item/stack/tile/roofing

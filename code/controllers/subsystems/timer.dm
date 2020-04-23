@@ -1,12 +1,11 @@
-#define BUCKET_LEN (world.fps*1*60) //how many ticks should we keep in the bucket. (1 minutes worth)
-#define BUCKET_POS(timer) ((round((timer.timeToRun - SStimer.head_offset) / world.tick_lag) % BUCKET_LEN)||BUCKET_LEN)
+#define BUCKET_LEN (round(10*(60/world.tick_lag), 1)) //how many ticks should we keep in the bucket. (1 minutes worth)
+#define BUCKET_POS(timer) (((round((timer.timeToRun - SStimer.head_offset) / world.tick_lag)+1) % BUCKET_LEN)||BUCKET_LEN)
 #define TIMER_MAX (world.time + TICKS2DS(min(BUCKET_LEN-(SStimer.practical_offset-DS2TICKS(world.time - SStimer.head_offset))-1, BUCKET_LEN-1)))
 #define TIMER_ID_MAX (2**24) //max float with integer precision
 
 SUBSYSTEM_DEF(timer)
 	name = "Timer"
 	wait = 1 //SS_TICKER subsystem, so wait is in ticks
-	priority = FIRE_PRIORITY_TIMERS //VOREStation Emergency Edit
 	init_order = INIT_ORDER_TIMER
 
 	flags = SS_TICKER|SS_NO_INIT
@@ -72,7 +71,6 @@ SUBSYSTEM_DEF(timer)
 		for(var/I in second_queue)
 			log_world(get_timer_debug_string(I))
 
-	var/cut_start_index = 1
 	var/next_clienttime_timer_index = 0
 	var/len = length(clienttime_timers)
 
@@ -95,14 +93,14 @@ SUBSYSTEM_DEF(timer)
 
 		if(ctime_timer.flags & TIMER_LOOP)
 			ctime_timer.spent = 0
-			clienttime_timers.Insert(ctime_timer, 1)
-			cut_start_index++
+			ctime_timer.timeToRun = REALTIMEOFDAY + ctime_timer.wait
+			BINARY_INSERT(ctime_timer, clienttime_timers, datum/timedevent, timeToRun)
 		else
 			qdel(ctime_timer)
 
 
 	if (next_clienttime_timer_index)
-		clienttime_timers.Cut(cut_start_index,next_clienttime_timer_index+1)
+		clienttime_timers.Cut(1, next_clienttime_timer_index+1)
 
 	if (MC_TICK_CHECK)
 		return
@@ -260,7 +258,7 @@ SUBSYSTEM_DEF(timer)
 	if (!length(alltimers))
 		return
 
-	sortTim(alltimers, .proc/cmp_timer)
+	sortTim(alltimers, /proc/cmp_timer)
 
 	var/datum/timedevent/head = alltimers[1]
 
@@ -270,7 +268,7 @@ SUBSYSTEM_DEF(timer)
 	var/new_bucket_count
 	var/i = 1
 	for (i in 1 to length(alltimers))
-		var/datum/timedevent/timer = alltimers[1]
+		var/datum/timedevent/timer = alltimers[i]
 		if (!timer)
 			continue
 
@@ -343,8 +341,8 @@ SUBSYSTEM_DEF(timer)
 
 	if (flags & TIMER_STOPPABLE)
 		id = num2text(nextid, 100)
-		if (nextid >= SHORT_REAL_LIMIT)
-			nextid += min(1, 2**round(nextid/SHORT_REAL_LIMIT))
+		if (nextid >= TIMER_ID_MAX)
+			nextid += min(1, 2**round(nextid/TIMER_ID_MAX))
 		else
 			nextid++
 		SStimer.timer_id_dict[id] = src

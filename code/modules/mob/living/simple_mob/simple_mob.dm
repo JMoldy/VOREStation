@@ -14,6 +14,8 @@
 	mob_swap_flags = ~HEAVY
 	mob_push_flags = ~HEAVY
 
+	has_huds = TRUE // We do show AI status huds for buildmode players
+
 	var/tt_desc = null //Tooltip description
 
 	//Settings for played mobs
@@ -47,6 +49,7 @@
 	var/movement_sound = null			// If set, will play this sound when it moves on its own will.
 	var/turn_sound = null				// If set, plays the sound when the mob's dir changes in most cases.
 	var/movement_shake_radius = 0		// If set, moving will shake the camera of all living mobs within this radius slightly.
+	var/aquatic_movement = 0			// If set, the mob will move through fluids with no hinderance.
 
 	//Mob interaction
 	var/response_help   = "tries to help"	// If clicked on help intent
@@ -105,7 +108,7 @@
 	var/attack_sharp = FALSE			// Is the attack sharp?
 	var/attack_edge = FALSE				// Does the attack have an edge?
 
-	var/melee_attack_delay = null			// If set, the mob will do a windup animation and can miss if the target moves out of the way.
+	var/melee_attack_delay = 2			// If set, the mob will do a windup animation and can miss if the target moves out of the way.
 	var/ranged_attack_delay = null
 	var/special_attack_delay = null
 
@@ -159,7 +162,7 @@
 	health = maxHealth
 
 	for(var/L in has_langs)
-		languages |= all_languages[L]
+		languages |= GLOB.all_languages[L]
 	if(languages.len)
 		default_language = languages[1]
 
@@ -230,8 +233,11 @@
 
 	// Turf related slowdown
 	var/turf/T = get_turf(src)
-	if(T && T.movement_cost && !hovering) // Flying mobs ignore turf-based slowdown.
-		tally += T.movement_cost
+	if(T && T.movement_cost && !hovering) // Flying mobs ignore turf-based slowdown. Aquatic mobs ignore water slowdown, and can gain bonus speed in it.
+		if(istype(T,/turf/simulated/floor/water) && aquatic_movement)
+			tally -= aquatic_movement - 1
+		else
+			tally += T.movement_cost
 
 	if(purge)//Purged creatures will move more slowly. The more time before their purge stops, the slower they'll move.
 		if(tally <= 0)
@@ -292,3 +298,8 @@
 
 /mob/living/simple_mob/get_nametag_desc(mob/user)
 	return "<i>[tt_desc]</i>"
+
+/mob/living/simple_mob/make_hud_overlays()
+	hud_list[STATUS_HUD]  = gen_hud_image(buildmode_hud, src, "ai_0", plane = PLANE_BUILDMODE)
+	hud_list[LIFE_HUD]	  = gen_hud_image(buildmode_hud, src, "ais_1", plane = PLANE_BUILDMODE)
+	add_overlay(hud_list)

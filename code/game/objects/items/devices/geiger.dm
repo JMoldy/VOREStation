@@ -28,7 +28,7 @@
 /obj/item/device/geiger/proc/get_radiation()
 	if(!scanning)
 		return
-	radiation_count = radiation_repository.get_rads_at_turf(get_turf(src))
+	radiation_count = SSradiation.get_rads_at_turf(get_turf(src))
 	update_icon()
 	update_sound()
 
@@ -62,7 +62,7 @@
 	scanning = !scanning
 	update_icon()
 	update_sound()
-	to_chat(user, "<span class='notice'>\icon[src] You switch [scanning ? "on" : "off"] \the [src].</span>")
+	to_chat(user, "<span class='notice'>[bicon(src)] You switch [scanning ? "on" : "off"] \the [src].</span>")
 
 /obj/item/device/geiger/update_icon()
 	if(!scanning)

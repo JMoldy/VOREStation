@@ -17,6 +17,7 @@
 	matter = list(DEFAULT_WALL_MATERIAL = 50)
 	attack_verb = list("attacked", "bashed", "battered", "bludgeoned", "whacked")
 	usesound = 'sound/items/crowbar.ogg'
+	drop_sound = 'sound/items/drop/sword.ogg'
 	toolspeed = 1
 
 /obj/item/weapon/tool/crowbar/is_crowbar()
@@ -64,7 +65,7 @@
 /obj/item/weapon/tool/crowbar/hybrid/is_crowbar()
 	if(prob(10))
 		var/turf/T = get_turf(src)
-		radiation_repository.radiate(get_turf(src), 5)
+		SSradiation.radiate(get_turf(src), 5)
 		T.visible_message("<span class='alien'>\The [src] shudders!</span>")
 		return FALSE
 	return TRUE

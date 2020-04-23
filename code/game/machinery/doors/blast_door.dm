@@ -56,7 +56,7 @@
 		icon_state = icon_state_closed
 	else
 		icon_state = icon_state_open
-	radiation_repository.resistance_cache.Remove(get_turf(src))
+	SSradiation.resistance_cache.Remove(get_turf(src))
 	return
 
 // Has to be in here, comment at the top is older than the emag_act code on doors proper
@@ -91,7 +91,7 @@
 	src.density = 1
 	update_nearby_tiles()
 	src.update_icon()
-	src.set_opacity(initial(opacity))
+	src.set_opacity(1)
 	sleep(15)
 	src.operating = 0
 
@@ -244,8 +244,7 @@
 		force_open()
 
 	if(autoclose && src.operating && !(stat & BROKEN || stat & NOPOWER))
-		spawn(150)
-			close()
+		addtimer(CALLBACK(src, .proc/close, 15 SECONDS))
 	return 1
 
 // Proc: close()

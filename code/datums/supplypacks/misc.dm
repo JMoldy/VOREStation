@@ -74,8 +74,17 @@
 			/obj/item/toy/plushie/squid/blue,
 			/obj/item/toy/plushie/squid/orange,
 			/obj/item/toy/plushie/squid/yellow,
-			/obj/item/toy/plushie/squid/pink
-			)
+			/obj/item/toy/plushie/squid/pink,
+			//VOREStation Add Start
+			/obj/item/toy/plushie/lizardplushie/kobold,
+			/obj/item/toy/plushie/slimeplushie,
+			/obj/item/toy/plushie/box,
+			/obj/item/toy/plushie/borgplushie,
+			/obj/item/toy/plushie/borgplushie/medihound,
+			/obj/item/toy/plushie/borgplushie/scrubpuppy,
+			/obj/item/toy/plushie/foxbear,
+			/obj/item/toy/plushie/nukeplushie)
+			//VOREStation Add End
 	name = "Plushies Crate"
 	cost = 15
 	containertype = /obj/structure/closet/crate
@@ -103,7 +112,7 @@
 			/obj/item/weapon/storage/fancy/candle_box = 3
 			)
 	cost = 10
-	containertype = "/obj/structure/closet/crate"
+	containertype = /obj/structure/closet/crate
 	containername = "Chaplain equipment crate"
 
 /datum/supply_pack/misc/hoverpod
@@ -126,7 +135,7 @@
 			/obj/item/clothing/accessory/storage/webbing
 			)
 	cost = 10
-	containertype = "/obj/structure/closet/crate"
+	containertype = /obj/structure/closet/crate
 	containername = "Webbing crate"
 
 /datum/supply_pack/misc/holoplant
@@ -142,5 +151,40 @@
 			/obj/item/weapon/reagent_containers/hypospray/autoinjector/biginjector/glucose = 5
 			)
 	cost = 25
-	containertype = "obj/structure/closet/crate"
+	containertype = /obj/structure/closet/crate
 	containername = "Glucose Hypo Crate"
+
+/datum/supply_pack/misc/mre_rations
+	num_contained = 6
+	name = "Emergency - MREs"
+	contains = list(/obj/item/weapon/storage/mre,
+					/obj/item/weapon/storage/mre/menu2,
+					/obj/item/weapon/storage/mre/menu3,
+					/obj/item/weapon/storage/mre/menu4,
+					/obj/item/weapon/storage/mre/menu5,
+					/obj/item/weapon/storage/mre/menu6,
+					/obj/item/weapon/storage/mre/menu7,
+					/obj/item/weapon/storage/mre/menu8,
+					/obj/item/weapon/storage/mre/menu9,
+					/obj/item/weapon/storage/mre/menu10)
+	cost = 50
+	containertype = /obj/structure/closet/crate/freezer
+	containername = "ready to eat rations"
+
+/datum/supply_pack/misc/paste_rations
+	name = "Emergency - Paste"
+	contains = list(
+			/obj/item/weapon/storage/mre/menu11 = 2
+			)
+	cost = 25
+	containertype = /obj/structure/closet/crate/freezer
+	containername = "emergency rations"
+
+/datum/supply_pack/misc/medical_rations
+	name = "Emergency - VitaPaste"
+	contains = list(
+			/obj/item/weapon/storage/mre/menu13 = 2
+			)
+	cost = 40
+	containertype = /obj/structure/closet/crate/freezer
+	containername = "emergency rations"

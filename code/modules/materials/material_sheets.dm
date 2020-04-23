@@ -6,6 +6,7 @@
 	w_class = ITEMSIZE_NORMAL
 	throw_speed = 3
 	throw_range = 3
+	center_of_mass = null
 	max_amount = 50
 	item_icons = list(
 		slot_l_hand_str = 'icons/mob/items/lefthand_material.dmi',
@@ -16,11 +17,11 @@
 	var/material/material
 	var/perunit = SHEET_MATERIAL_AMOUNT
 	var/apply_colour //temp pending icon rewrite
+	drop_sound = 'sound/items/drop/axe.ogg'
 
 /obj/item/stack/material/New()
 	..()
-	pixel_x = rand(0,4)-4
-	pixel_y = rand(0,4)-4
+	randpixel_xy()
 
 	if(!default_type)
 		default_type = DEFAULT_WALL_MATERIAL
@@ -99,24 +100,27 @@
 	icon_state = "sheet-adamantine"
 	default_type = "lead"
 	apply_colour = 1
-	no_variants = TRUE
+	no_variants = FALSE
 
 /obj/item/stack/material/sandstone
 	name = "sandstone brick"
 	icon_state = "sheet-sandstone"
 	default_type = "sandstone"
 	no_variants = FALSE
+	drop_sound = 'sound/items/drop/boots.ogg'
 
 /obj/item/stack/material/marble
 	name = "marble brick"
 	icon_state = "sheet-marble"
 	default_type = "marble"
 	no_variants = FALSE
+	drop_sound = 'sound/items/drop/boots.ogg'
 
 /obj/item/stack/material/diamond
 	name = "diamond"
 	icon_state = "sheet-diamond"
 	default_type = "diamond"
+	drop_sound = 'sound/items/drop/glass.ogg'
 
 /obj/item/stack/material/uranium
 	name = "uranium"
@@ -129,11 +133,19 @@
 	icon_state = "sheet-phoron"
 	default_type = "phoron"
 	no_variants = FALSE
+	drop_sound = 'sound/items/drop/glass.ogg'
 
 /obj/item/stack/material/plastic
 	name = "plastic"
 	icon_state = "sheet-plastic"
 	default_type = "plastic"
+	no_variants = FALSE
+
+/obj/item/stack/material/graphite
+	name = "graphite"
+	icon_state = "sheet-silver"
+	default_type = MAT_GRAPHITE
+	apply_colour = 1
 	no_variants = FALSE
 
 /obj/item/stack/material/gold
@@ -275,8 +287,10 @@
 	return
 
 /obj/item/stack/material/supermatter/attack_hand(mob/user)
+	. = ..()
+
 	update_mass()
-	radiation_repository.radiate(src, 5 + amount)
+	SSradiation.radiate(src, 5 + amount)
 	var/mob/living/M = user
 	if(!istype(M))
 		return
@@ -303,17 +317,19 @@
 
 /obj/item/stack/material/supermatter/ex_act(severity)	// An incredibly hard to manufacture material, SM chunks are unstable by their 'stabilized' nature.
 	if(prob((4 / severity) * 20))
-		radiation_repository.radiate(get_turf(src), amount * 4)
+		SSradiation.radiate(get_turf(src), amount * 4)
 		explosion(get_turf(src),round(amount / 12) , round(amount / 6), round(amount / 3), round(amount / 25))
 		qdel(src)
 		return
-	radiation_repository.radiate(get_turf(src), amount * 2)
+	SSradiation.radiate(get_turf(src), amount * 2)
 	..()
 
 /obj/item/stack/material/wood
 	name = "wooden plank"
 	icon_state = "sheet-wood"
 	default_type = MAT_WOOD
+	strict_color_stacking = TRUE
+	drop_sound = 'sound/items/drop/wooden.ogg'
 
 /obj/item/stack/material/wood/sif
 	name = "alien wooden plank"
@@ -330,6 +346,7 @@
 	w_class = ITEMSIZE_HUGE
 	description_info = "Use inhand to craft things, or use a sharp and edged object on this to convert it into two wooden planks."
 	var/plank_type = /obj/item/stack/material/wood
+	drop_sound = 'sound/items/drop/wooden.ogg'
 
 /obj/item/stack/material/log/sif
 	name = "alien log"
@@ -365,12 +382,27 @@
 	icon_state = "sheet-cloth"
 	default_type = "cloth"
 	no_variants = FALSE
+	pass_color = TRUE
+	strict_color_stacking = TRUE
+	drop_sound = 'sound/items/drop/clothing.ogg'
+
+/obj/item/stack/material/resin
+	name = "resin"
+	icon_state = "sheet-resin"
+	default_type = "resin"
+	no_variants = TRUE
+	apply_colour = TRUE
+	pass_color = TRUE
+	strict_color_stacking = TRUE
 
 /obj/item/stack/material/cardboard
 	name = "cardboard"
 	icon_state = "sheet-card"
 	default_type = "cardboard"
 	no_variants = FALSE
+	pass_color = TRUE
+	strict_color_stacking = TRUE
+	drop_sound = 'sound/items/drop/box.ogg'
 
 /obj/item/stack/material/snow
 	name = "snow"
@@ -390,12 +422,16 @@
 	icon_state = "sheet-leather"
 	default_type = "leather"
 	no_variants = FALSE
+	pass_color = TRUE
+	strict_color_stacking = TRUE
+	drop_sound = 'sound/items/drop/clothing.ogg'
 
 /obj/item/stack/material/glass
 	name = "glass"
 	icon_state = "sheet-glass"
 	default_type = "glass"
 	no_variants = FALSE
+	drop_sound = 'sound/items/drop/glass.ogg'
 
 /obj/item/stack/material/glass/reinforced
 	name = "reinforced glass"

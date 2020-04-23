@@ -36,14 +36,26 @@
 	var/datum/matter_synth/water = null
 	var/digest_brute = 2
 	var/digest_burn = 3
+	var/recycles = FALSE
 
 /obj/item/device/dogborg/sleeper/New()
 	..()
 	flags |= NOBLUDGEON //No more attack messages
 	files = new /datum/research/techonly(src)
 
+/obj/item/device/dogborg/sleeper/Destroy()
+	go_out()
+	..()
+
 /obj/item/device/dogborg/sleeper/Exit(atom/movable/O)
 	return 0
+
+/obj/item/device/dogborg/sleeper/return_air()
+	return return_air_for_internal_lifeform()
+
+/obj/item/device/dogborg/sleeper/return_air_for_internal_lifeform()
+	var/datum/gas_mixture/belly_air/air = new(1000)
+	return air
 
 /obj/item/device/dogborg/sleeper/afterattack(var/atom/movable/target, mob/living/silicon/user, proximity)
 	hound = loc
@@ -168,6 +180,8 @@
 
 /obj/item/device/dogborg/sleeper/proc/drain(var/amt = 3) //Slightly reduced cost (before, it was always injecting inaprov)
 	hound = src.loc
+	if(istype(hound,/obj/item/weapon/robot_module))
+		hound = hound.loc
 	hound.cell.charge = hound.cell.charge - amt
 
 /obj/item/device/dogborg/sleeper/attack_self(mob/user)
@@ -396,6 +410,8 @@
 //For if the dogborg's existing patient uh, doesn't make it.
 /obj/item/device/dogborg/sleeper/proc/update_patient()
 	hound = src.loc
+	if(!istype(hound,/mob/living/silicon/robot))
+		return
 	if(UI_open == TRUE)
 		sleeperUI(hound)
 
@@ -587,12 +603,12 @@
 						drain(-50 * digested)
 					if(volume)
 						water.add_charge(volume)
-					if(!analyzer && !delivery && compactor && T.matter)
+					if(recycles && T.matter)
 						for(var/material in T.matter)
 							var/total_material = T.matter[material]
 							if(istype(T,/obj/item/stack))
 								var/obj/item/stack/stack = T
-								total_material *= (0.5 * stack.get_amount())
+								total_material *= stack.get_amount()
 							if(material == DEFAULT_WALL_MATERIAL)
 								metal.add_charge(total_material)
 							if(material == "glass")
@@ -613,6 +629,8 @@
 	return
 
 /obj/item/device/dogborg/sleeper/process()
+	if(!istype(src.loc,/mob/living/silicon/robot))
+		return
 
 	if(cleaning) //We're cleaning, return early after calling this as we don't care about the patient.
 		clean_cycle()
@@ -646,6 +664,7 @@
 	icon_state = "compactor"
 	injection_chems = null //So they don't have all the same chems as the medihound!
 	compactor = TRUE
+	recycles = TRUE
 	max_item_count = 25
 
 /obj/item/device/dogborg/sleeper/compactor/analyzer //sci-borg gut.
@@ -662,6 +681,7 @@
 	icon_state = "decompiler"
 	max_item_count = 10
 	decompiler = TRUE
+	recycles = TRUE
 
 /obj/item/device/dogborg/sleeper/compactor/delivery //Unfinished and unimplemented, still testing.
 	name = "Cargo Belly"
@@ -669,3 +689,10 @@
 	icon_state = "decompiler"
 	max_item_count = 20
 	delivery = TRUE
+	
+/obj/item/device/dogborg/sleeper/compactor/supply //Miner borg belly
+	name = "Supply Satchel"
+	desc = "A mounted survival unit with fuel processor."
+	icon_state = "sleeperc"
+	injection_chems = list("glucose","inaprovaline","tricordrazine")
+	max_item_count = 1

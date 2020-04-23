@@ -27,6 +27,7 @@ BLIND     // can't see anything
 	var/activation_sound = 'sound/items/goggles_charge.ogg'
 	var/obj/screen/overlay = null
 	var/list/away_planes //Holder for disabled planes
+	drop_sound = 'sound/items/drop/accessory.ogg'
 
 	sprite_sheets = list(
 		"Teshari" = 'icons/mob/species/seromi/eyes.dmi',
@@ -159,6 +160,7 @@ BLIND     // can't see anything
 	item_state_slots = list(slot_r_hand_str = "blindfold", slot_l_hand_str = "blindfold")
 	body_parts_covered = 0
 	var/eye = null
+	drop_sound = 'sound/items/drop/gloves.ogg'
 
 /obj/item/clothing/glasses/eyepatch/verb/switcheye()
 	set name = "Switch Eyepatch"
@@ -200,6 +202,24 @@ BLIND     // can't see anything
 	name = "prescription optical material scanner"
 	prescription = 1
 
+/obj/item/clothing/glasses/graviton
+	name = "graviton goggles"
+	desc = "The secrets of space travel are.. not quite yours."
+	icon_state = "grav"
+	item_state_slots = list(slot_r_hand_str = "glasses", slot_l_hand_str = "glasses")
+	origin_tech = list(TECH_MAGNET = 2, TECH_BLUESPACE = 1)
+	darkness_view = 5
+	toggleable = 1
+	action_button_name = "Toggle Goggles"
+	off_state = "denight"
+	vision_flags = SEE_OBJS | SEE_TURFS
+	flash_protection = FLASH_PROTECTION_REDUCED
+	enables_planes = list(VIS_FULLBRIGHT, VIS_MESONS)
+
+/obj/item/clothing/glasses/graviton/New()
+	..()
+	overlay = global_hud.material
+
 /obj/item/clothing/glasses/regular
 	name = "prescription glasses"
 	desc = "Made by Nerd. Co."
@@ -236,7 +256,6 @@ BLIND     // can't see anything
 	name = "prescription rimless glasses"
 	desc = "Sleek modern glasses with a single sculpted lens."
 	icon_state = "glasses_rimless"
-	prescription = 1
 
 /obj/item/clothing/glasses/rimless
 	name = "rimless glasses"
@@ -323,6 +342,7 @@ BLIND     // can't see anything
 	item_state_slots = list(slot_r_hand_str = "blindfold", slot_l_hand_str = "blindfold")
 	flash_protection = FLASH_PROTECTION_MAJOR
 	tint = BLIND
+	drop_sound = 'sound/items/drop/gloves.ogg'
 
 /obj/item/clothing/glasses/sunglasses/blindfold/tape
 	name = "length of tape"
@@ -417,13 +437,13 @@ BLIND     // can't see anything
 	toggleable = 1
 	action_button_name = "Toggle Goggles"
 	vision_flags = SEE_MOBS
-	enables_planes = list(VIS_FULLBRIGHT)
+	enables_planes = list(VIS_FULLBRIGHT, VIS_CLOAKED)
 	flash_protection = FLASH_PROTECTION_REDUCED
 
 	emp_act(severity)
 		if(istype(src.loc, /mob/living/carbon/human))
 			var/mob/living/carbon/human/M = src.loc
-			M << "<font color='red'>The Optical Thermal Scanner overloads and blinds you!</font>"
+			to_chat(M, "<font color='red'>The Optical Thermal Scanner overloads and blinds you!</font>")
 			if(M.glasses == src)
 				M.Blind(3)
 				M.eye_blurry = 5

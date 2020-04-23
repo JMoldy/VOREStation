@@ -11,6 +11,10 @@ var/list/mining_overlay_cache = list()
 	name = "rock"
 	icon = 'icons/turf/walls.dmi'
 	icon_state = "rock"
+	var/rock_side_icon_state = "rock_side"
+	var/sand_icon_state = "asteroid"
+	var/rock_icon_state = "rock"
+	var/random_icon = 0
 	oxygen = 0
 	nitrogen = 0
 	opacity = 1
@@ -49,10 +53,19 @@ var/list/mining_overlay_cache = list()
 		"carbon" = /obj/item/weapon/ore/coal,
 		"verdantium" = /obj/item/weapon/ore/verdantium,
 		"marble" = /obj/item/weapon/ore/marble,
-		"lead" = /obj/item/weapon/ore/lead
+		"lead" = /obj/item/weapon/ore/lead,
+		"rutile" = /obj/item/weapon/ore/rutile //VOREStation Add
 	)
 
 	has_resources = 1
+
+// Alternative rock wall sprites.
+/turf/simulated/mineral/light
+	icon_state = "rock-light"
+	rock_side_icon_state = "rock_side-light"
+	sand_icon_state = "sand-light"
+	rock_icon_state = "rock-light"
+	random_icon = 1
 
 /turf/simulated/mineral/ignore_mapgen
 	ignore_mapgen = 1
@@ -65,6 +78,23 @@ var/list/mining_overlay_cache = list()
 	opacity = 0
 	blocks_air = 0
 	can_build_into_floor = TRUE
+
+//Alternative sand floor sprite.
+turf/simulated/mineral/floor/light
+	icon_state = "sand-light"
+	sand_icon_state = "sand-light"
+
+turf/simulated/mineral/floor/light_border
+	icon_state = "sand-light-border"
+	sand_icon_state = "sand-light-border"
+
+turf/simulated/mineral/floor/light_nub
+	icon_state = "sand-light-nub"
+	sand_icon_state = "sand-light-nub"
+
+turf/simulated/mineral/floor/light_corner
+	icon_state = "sand-light-corner"
+	sand_icon_state = "sand-light-corner"
 
 /turf/simulated/mineral/floor/ignore_mapgen
 	ignore_mapgen = 1
@@ -95,15 +125,6 @@ var/list/mining_overlay_cache = list()
 		if(air_master)
 			air_master.mark_for_update(src)
 
-/turf/simulated/mineral/Entered(atom/movable/M as mob|obj)
-	. = ..()
-	if(istype(M,/mob/living/silicon/robot))
-		var/mob/living/silicon/robot/R = M
-		if(R.module)
-			for(var/obj/item/weapon/storage/bag/ore/O in list(R.module_state_1, R.module_state_2, R.module_state_3))
-				attackby(O, R)
-				return
-
 /turf/simulated/mineral/proc/get_cached_border(var/cache_id, var/direction, var/icon_file, var/icon_state, var/offset = 32)
 	//Cache miss
 	if(!mining_overlay_cache["[cache_id]_[direction]"])
@@ -130,6 +151,9 @@ var/list/mining_overlay_cache = list()
 	update_icon(1)
 	if(density && mineral)
 		. = INITIALIZE_HINT_LATELOAD
+	if(random_icon)
+		dir = pick(alldirs)
+		. = INITIALIZE_HINT_LATELOAD
 
 /turf/simulated/mineral/LateInitialize()
 	if(density && mineral)
@@ -147,13 +171,13 @@ var/list/mining_overlay_cache = list()
 			name = "rock"
 
 		icon = 'icons/turf/walls.dmi'
-		icon_state = "rock"
+		icon_state = rock_icon_state
 
 		//Apply overlays if we should have borders
 		for(var/direction in cardinal)
 			var/turf/T = get_step(src,direction)
 			if(istype(T) && !T.density)
-				add_overlay(get_cached_border("rock_side",direction,icon,"rock_side"))
+				add_overlay(get_cached_border(rock_side_icon_state,direction,icon,rock_side_icon_state))
 
 			if(archaeo_overlay)
 				add_overlay(archaeo_overlay)
@@ -165,7 +189,7 @@ var/list/mining_overlay_cache = list()
 	else
 		name = "sand"
 		icon = 'icons/turf/flooring/asteroid.dmi'
-		icon_state = "asteroid"
+		icon_state = sand_icon_state
 
 		if(sand_dug)
 			add_overlay("dug_overlay")
@@ -179,7 +203,7 @@ var/list/mining_overlay_cache = list()
 			else
 				var/turf/T = get_step(src, direction)
 				if(istype(T) && T.density)
-					add_overlay(get_cached_border("rock_side",direction,'icons/turf/walls.dmi',"rock_side"))
+					add_overlay(get_cached_border(rock_side_icon_state,direction,'icons/turf/walls.dmi',rock_side_icon_state))
 
 		if(overlay_detail)
 			add_overlay('icons/turf/flooring/decals.dmi',overlay_detail)
@@ -188,6 +212,9 @@ var/list/mining_overlay_cache = list()
 			for(var/direction in alldirs)
 				if(istype(get_step(src, direction), /turf/simulated/mineral))
 					var/turf/simulated/mineral/M = get_step(src, direction)
+					M.update_icon()
+				if(istype(get_step(src, direction), /turf/simulated/wall/solidrock))
+					var/turf/simulated/wall/solidrock/M = get_step(src, direction)
 					M.update_icon()
 
 /turf/simulated/mineral/ex_act(severity)
@@ -393,7 +420,7 @@ var/list/mining_overlay_cache = list()
 				var/datum/find/F = finds[1]
 				if(newDepth > F.excavation_required) // Digging too deep can break the item. At least you won't summon a Balrog (probably)
 					fail_message = ". <b>[pick("There is a crunching noise","[W] collides with some different rock","Part of the rock face crumbles away","Something breaks under [W]")]</b>"
-				wreckfinds(P.destroy_artefacts)
+					wreckfinds(P.destroy_artefacts)
 			to_chat(user, "<span class='notice'>You start [P.drill_verb][fail_message].</span>")
 
 			if(do_after(user,P.digspeed))
@@ -542,7 +569,7 @@ var/list/mining_overlay_cache = list()
 				M.flash_eyes()
 				if(prob(50))
 					M.Stun(5)
-			radiation_repository.flat_radiate(src, 25, 100)
+			SSradiation.flat_radiate(src, 25, 100)
 			if(prob(25))
 				excavate_find(prob(5), finds[1])
 	else if(rand(1,500) == 1)
@@ -559,9 +586,10 @@ var/list/mining_overlay_cache = list()
 	if(is_clean)
 		X = new /obj/item/weapon/archaeological_find(src, new_item_type = F.find_type)
 	else
-		X = new /obj/item/weapon/ore/strangerock(src, inside_item_type = F.find_type)
+		X = new /obj/item/weapon/strangerock(src, inside_item_type = F.find_type)
 		geologic_data.UpdateNearbyArtifactInfo(src)
-		X:geologic_data = geologic_data
+		var/obj/item/weapon/strangerock/SR = X
+		SR.geologic_data = geologic_data
 
 	//some find types delete the /obj/item/weapon/archaeological_find and replace it with something else, this handles when that happens
 	//yuck
@@ -611,10 +639,10 @@ var/list/mining_overlay_cache = list()
 
 	var/mineral_name
 	if(rare_ore)
-		mineral_name = pickweight(list("marble" = 5, "uranium" = 10, "platinum" = 10, "hematite" = 20, "carbon" = 20, "diamond" = 2, "gold" = 10, "silver" = 10, "phoron" = 20, "lead" = 5, "verdantium" = 1))
+		mineral_name = pickweight(list("marble" = 5, "uranium" = 10, "platinum" = 10, "hematite" = 20, "carbon" = 20, "diamond" = 2, "gold" = 10, "silver" = 10, "phoron" = 20, "lead" = 5, "verdantium" = 1, "rutile" = 4)) //VOREStation Edit
 
 	else
-		mineral_name = pickweight(list("marble" = 3, "uranium" = 10, "platinum" = 10, "hematite" = 70, "carbon" = 70, "diamond" = 2, "gold" = 10, "silver" = 10, "phoron" = 20, "lead" = 2, "verdantium" = 1))
+		mineral_name = pickweight(list("marble" = 3, "uranium" = 10, "platinum" = 10, "hematite" = 70, "carbon" = 70, "diamond" = 2, "gold" = 10, "silver" = 10, "phoron" = 20, "lead" = 2, "verdantium" = 1, "rutile" = 4)) //VOREStation Edit
 
 	if(mineral_name && (mineral_name in ore_data))
 		mineral = ore_data[mineral_name]

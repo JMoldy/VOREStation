@@ -3,9 +3,9 @@
 	path = /obj/item/clothing/under/permit
 
 //Polaris overrides
-/datum/gear/uniform/pt/sifguard
+/datum/gear/uniform/solgov/pt/sifguard
 	display_name = "pt uniform, planetside sec"
-	path = /obj/item/clothing/under/pt/sifguard
+	path = /obj/item/clothing/under/solgov/pt/sifguard
 
 //KHI Uniforms
 /datum/gear/uniform/job_khi/cmd
@@ -169,3 +169,28 @@ Swimsuits
 /datum/gear/uniform/siren
 	display_name = "jumpsuit, Siren"
 	path = /obj/item/clothing/under/fluff/siren
+
+/datum/gear/uniform/suit/v_nanovest
+	display_name = "Varmacorp nanovest"
+	path = /obj/item/clothing/under/fluff/v_nanovest
+
+//Detective alternative
+/datum/gear/uniform/detective_alt
+	display_name = "sleek modern coat, detective"
+	path = /obj/item/clothing/under/detective_alt
+	allowed_roles = list("Head of Security", "Detective")
+
+/*
+Qipao
+*/
+/datum/gear/uniform/qipao
+	display_name = "qipao, black"
+	path = /obj/item/clothing/under/dress/qipao
+
+/datum/gear/uniform/qipao_red
+	display_name = "qipao, red"
+	path = /obj/item/clothing/under/dress/qipao/red
+
+/datum/gear/uniform/qipao_white
+	display_name = "qipao, white"
+	path = /obj/item/clothing/under/dress/qipao/white

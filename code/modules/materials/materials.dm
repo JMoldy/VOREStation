@@ -16,6 +16,7 @@
 			stone
 			metal
 			solid
+			resin
 			ONLY WALLS
 				cult
 				hull
@@ -94,6 +95,7 @@ var/list/name_to_material
 	var/door_icon_base = "metal"                         // Door base icon tag. See header.
 	var/icon_reinf = "reinf_metal"                       // Overlay used
 	var/list/stack_origin_tech = list(TECH_MATERIAL = 1) // Research level for stacks.
+	var/pass_stack_colors = FALSE                        // Will stacks made from this material pass their colors onto objects?
 
 	// Attributes
 	var/cut_delay = 0            // Delay in ticks when cutting through this wall.
@@ -107,7 +109,7 @@ var/list/name_to_material
 	var/explosion_resistance = 5 // Only used by walls currently.
 	var/negation = 0             // Objects that respect this will randomly absorb impacts with this var as the percent chance.
 	var/spatial_instability = 0  // Objects that have trouble staying in the same physical space by sheer laws of nature have this. Percent for respecting items to cause teleportation.
-	var/conductive = 1           // Objects with this var add CONDUCTS to flags on spawn.
+	var/conductive = 1           // Objects without this var add NOCONDUCT to flags on spawn.
 	var/conductivity = null      // How conductive the material is. Iron acts as the baseline, at 10.
 	var/list/composite_material  // If set, object matter var will be a list containing these values.
 	var/luminescence
@@ -136,10 +138,10 @@ var/list/name_to_material
 // Placeholders for light tiles and rglass.
 /material/proc/build_rod_product(var/mob/user, var/obj/item/stack/used_stack, var/obj/item/stack/target_stack)
 	if(!rod_product)
-		user << "<span class='warning'>You cannot make anything out of \the [target_stack]</span>"
+		to_chat(user, "<span class='warning'>You cannot make anything out of \the [target_stack]</span>")
 		return
 	if(used_stack.get_amount() < 1 || target_stack.get_amount() < 1)
-		user << "<span class='warning'>You need one rod and one sheet of [display_name] to make anything useful.</span>"
+		to_chat(user, "<span class='warning'>You need one rod and one sheet of [display_name] to make anything useful.</span>")
 		return
 	used_stack.use(1)
 	target_stack.use(1)
@@ -149,15 +151,15 @@ var/list/name_to_material
 
 /material/proc/build_wired_product(var/mob/living/user, var/obj/item/stack/used_stack, var/obj/item/stack/target_stack)
 	if(!wire_product)
-		user << "<span class='warning'>You cannot make anything out of \the [target_stack]</span>"
+		to_chat(user, "<span class='warning'>You cannot make anything out of \the [target_stack]</span>")
 		return
 	if(used_stack.get_amount() < 5 || target_stack.get_amount() < 1)
-		user << "<span class='warning'>You need five wires and one sheet of [display_name] to make anything useful.</span>"
+		to_chat(user, "<span class='warning'>You need five wires and one sheet of [display_name] to make anything useful.</span>")
 		return
 
 	used_stack.use(5)
 	target_stack.use(1)
-	user << "<span class='notice'>You attach wire to the [name].</span>"
+	to_chat(user, "<span class='notice'>You attach wire to the [name].</span>")
 	var/obj/item/product = new wire_product(get_turf(user))
 	user.put_in_hands(product)
 
@@ -239,6 +241,10 @@ var/list/name_to_material
 /material/proc/combustion_effect(var/turf/T, var/temperature)
 	return
 
+// Used by walls to do on-touch things, after checking for crumbling and open-ability.
+/material/proc/wall_touch_special(var/turf/simulated/wall/W, var/mob/living/L)
+	return
+
 // Datum definitions follow.
 /material/uranium
 	name = "uranium"
@@ -259,6 +265,7 @@ var/list/name_to_material
 	icon_colour = "#00FFE1"
 	opacity = 0.4
 	reflectivity = 0.6
+	conductive = 0
 	conductivity = 1
 	shard_type = SHARD_SHARD
 	tableslam_noise = 'sound/effects/Glasshit.ogg'
@@ -350,6 +357,7 @@ var/list/name_to_material
 	weight = 22
 	hardness = 55
 	protectiveness = 5 // 20%
+	conductive = 0
 	conductivity = 5
 	door_icon_base = "stone"
 	sheet_singular_name = "brick"
@@ -436,7 +444,7 @@ var/list/name_to_material
 // Very rare alloy that is reflective, should be used sparingly.
 /material/durasteel
 	name = "durasteel"
-	stack_type = /obj/item/stack/material/durasteel
+	stack_type = /obj/item/stack/material/durasteel/hull
 	integrity = 600
 	melting_point = 7000
 	icon_base = "metal"
@@ -458,6 +466,9 @@ var/list/name_to_material
 	explosion_resistance = 90
 	reflectivity = 0.9
 
+/material/durasteel/hull/place_sheet(var/turf/target) //Deconstructed into normal durasteel sheets.
+	new /obj/item/stack/material/durasteel(target)
+
 /material/plasteel/titanium
 	name = MAT_TITANIUM
 	stack_type = /obj/item/stack/material/titanium
@@ -473,6 +484,9 @@ var/list/name_to_material
 	icon_base = "hull"
 	icon_reinf = "reinf_mesh"
 
+/material/plasteel/titanium/hull/place_sheet(var/turf/target) //Deconstructed into normal titanium sheets.
+	new /obj/item/stack/material/titanium(target)
+
 /material/glass
 	name = "glass"
 	stack_type = /obj/item/stack/material/glass
@@ -485,6 +499,7 @@ var/list/name_to_material
 	hardness = 30
 	weight = 15
 	protectiveness = 0 // 0%
+	conductive = 0
 	conductivity = 1 // Glass shards don't conduct.
 	door_icon_base = "stone"
 	destruction_desc = "shatters"
@@ -499,12 +514,12 @@ var/list/name_to_material
 		return 0
 
 	if(!user.IsAdvancedToolUser())
-		user << "<span class='warning'>This task is too complex for your clumsy hands.</span>"
+		to_chat(user, "<span class='warning'>This task is too complex for your clumsy hands.</span>")
 		return 1
 
 	var/turf/T = user.loc
 	if(!istype(T))
-		user << "<span class='warning'>You must be standing on open flooring to build a window.</span>"
+		to_chat(user, "<span class='warning'>You must be standing on open flooring to build a window.</span>")
 		return 1
 
 	var/title = "Sheet-[used_stack.name] ([used_stack.get_amount()] sheet\s left)"
@@ -542,7 +557,7 @@ var/list/name_to_material
 			else
 				failed_to_build = 1
 	if(failed_to_build)
-		user << "<span class='warning'>There is no room in this location.</span>"
+		to_chat(user, "<span class='warning'>There is no room in this location.</span>")
 		return 1
 
 	var/build_path = /obj/structure/windoor_assembly
@@ -556,7 +571,7 @@ var/list/name_to_material
 		build_path = created_window
 
 	if(used_stack.get_amount() < sheets_needed)
-		user << "<span class='warning'>You need at least [sheets_needed] sheets to build this.</span>"
+		to_chat(user, "<span class='warning'>You need at least [sheets_needed] sheets to build this.</span>")
 		return 1
 
 	// Build the structure and update sheet count etc.
@@ -626,6 +641,7 @@ var/list/name_to_material
 	hardness = 10
 	weight = 12
 	protectiveness = 5 // 20%
+	conductive = 0
 	conductivity = 2 // For the sake of material armor diversity, we're gonna pretend this plastic is a good insulator.
 	melting_point = T0C+371 //assuming heat resistant plastic
 	stack_origin_tech = list(TECH_MATERIAL = 3)
@@ -636,6 +652,22 @@ var/list/name_to_material
 	stack_type = null
 	shard_type = SHARD_NONE
 
+/material/graphite
+	name = MAT_GRAPHITE
+	stack_type = /obj/item/stack/material/graphite
+	flags = MATERIAL_BRITTLE
+	icon_base = "solid"
+	icon_reinf = "reinf_mesh"
+	icon_colour = "#333333"
+	hardness = 75
+	weight = 15
+	integrity = 175
+	protectiveness = 15
+	conductivity = 18
+	melting_point = T0C+3600
+	radiation_resistance = 15
+	stack_origin_tech = list(TECH_MATERIAL = 2, TECH_MAGNET = 2)
+
 /material/osmium
 	name = "osmium"
 	stack_type = /obj/item/stack/material/osmium
@@ -643,6 +675,7 @@ var/list/name_to_material
 	stack_origin_tech = list(TECH_MATERIAL = 5)
 	sheet_singular_name = "ingot"
 	sheet_plural_name = "ingots"
+	conductivity = 100
 
 /material/tritium
 	name = "tritium"
@@ -652,6 +685,7 @@ var/list/name_to_material
 	sheet_singular_name = "ingot"
 	sheet_plural_name = "ingots"
 	is_fusion_fuel = 1
+	conductive = 0
 
 /material/deuterium
 	name = "deuterium"
@@ -661,6 +695,7 @@ var/list/name_to_material
 	sheet_singular_name = "ingot"
 	sheet_plural_name = "ingots"
 	is_fusion_fuel = 1
+	conductive = 0
 
 /material/mhydrogen
 	name = "mhydrogen"
@@ -730,6 +765,7 @@ var/list/name_to_material
 	icon_reinf = "reinf_metal"
 	protectiveness = 60
 	integrity = 300
+	conductive = 0
 	conductivity = 1.5
 	hardness = 90
 	shard_type = SHARD_SHARD
@@ -758,6 +794,7 @@ var/list/name_to_material
 	weight = 30
 	hardness = 45
 	negation = 2
+	conductive = 0
 	conductivity = 5
 	reflectivity = 0.5
 	radiation_resistance = 20
@@ -808,11 +845,18 @@ var/list/name_to_material
 /material/resin
 	name = "resin"
 	icon_colour = "#35343a"
+	icon_base = "resin"
 	dooropen_noise = 'sound/effects/attackblob.ogg'
 	door_icon_base = "resin"
+	icon_reinf = "reinf_mesh"
 	melting_point = T0C+300
 	sheet_singular_name = "blob"
 	sheet_plural_name = "blobs"
+	conductive = 0
+	explosion_resistance = 60
+	radiation_resistance = 10
+	stack_origin_tech = list(TECH_MATERIAL = 8, TECH_PHORON = 4, TECH_BLUESPACE = 4, TECH_BIO = 7)
+	stack_type = /obj/item/stack/material/resin
 
 /material/resin/can_open_material_door(var/mob/living/user)
 	var/mob/living/carbon/M = user
@@ -820,6 +864,17 @@ var/list/name_to_material
 		return 1
 	return 0
 
+/material/resin/wall_touch_special(var/turf/simulated/wall/W, var/mob/living/L)
+	var/mob/living/carbon/M = L
+	if(istype(M) && locate(/obj/item/organ/internal/xenos/hivenode) in M.internal_organs)
+		to_chat(M, "<span class='alien'>\The [W] shudders under your touch, starting to become porous.</span>")
+		playsound(W, 'sound/effects/attackblob.ogg', 50, 1)
+		if(do_after(L, 5 SECONDS))
+			spawn(2)
+				playsound(W, 'sound/effects/attackblob.ogg', 100, 1)
+				W.dismantle_wall()
+		return 1
+	return 0
 
 /material/wood
 	name = MAT_WOOD
@@ -833,6 +888,7 @@ var/list/name_to_material
 	hardness = 15
 	weight = 18
 	protectiveness = 8 // 28%
+	conductive = 0
 	conductivity = 1
 	melting_point = T0C+300 //okay, not melting in this case, but hot enough to destroy wood
 	ignition_point = T0C+288
@@ -849,6 +905,7 @@ var/list/name_to_material
 	stack_type = /obj/item/stack/material/log
 	sheet_singular_name = null
 	sheet_plural_name = "pile"
+	pass_stack_colors = TRUE
 
 /material/wood/log/sif
 	name = MAT_SIFLOG
@@ -864,7 +921,7 @@ var/list/name_to_material
 
 /material/wood/sif
 	name = MAT_SIFWOOD
-//	stack_type = /obj/item/stack/material/wood/sif
+	stack_type = /obj/item/stack/material/wood/sif
 	icon_colour = "#0099cc" // Cyan-ish
 	stack_origin_tech = list(TECH_MATERIAL = 2, TECH_BIO = 2) // Alien wood would presumably be more interesting to the analyzer.
 
@@ -879,12 +936,14 @@ var/list/name_to_material
 	hardness = 1
 	weight = 1
 	protectiveness = 0 // 0%
+	conductive = 0
 	ignition_point = T0C+232 //"the temperature at which book-paper catches fire, and burns." close enough
 	melting_point = T0C+232 //temperature at which cardboard walls would be destroyed
 	stack_origin_tech = list(TECH_MATERIAL = 1)
 	door_icon_base = "wood"
 	destruction_desc = "crumples"
 	radiation_resistance = 1
+	pass_stack_colors = TRUE
 
 /material/snow
 	name = MAT_SNOW
@@ -930,6 +989,8 @@ var/list/name_to_material
 	melting_point = T0C+300
 	protectiveness = 1 // 4%
 	flags = MATERIAL_PADDING
+	conductive = 0
+	pass_stack_colors = TRUE
 
 /material/cult
 	name = "cult"
@@ -940,6 +1001,7 @@ var/list/name_to_material
 	shard_type = SHARD_STONE_PIECE
 	sheet_singular_name = "brick"
 	sheet_plural_name = "bricks"
+	conductive = 0
 
 /material/cult/place_dismantled_girder(var/turf/target)
 	new /obj/structure/girder/cult(target, "cult")
@@ -963,6 +1025,7 @@ var/list/name_to_material
 	ignition_point = T0C+300
 	melting_point = T0C+300
 	protectiveness = 3 // 13%
+	conductive = 0
 
 /material/carpet
 	name = "carpet"
@@ -975,6 +1038,7 @@ var/list/name_to_material
 	sheet_singular_name = "tile"
 	sheet_plural_name = "tiles"
 	protectiveness = 1 // 4%
+	conductive = 0
 
 /material/cotton
 	name = "cotton"
@@ -984,6 +1048,7 @@ var/list/name_to_material
 	ignition_point = T0C+232
 	melting_point = T0C+300
 	protectiveness = 1 // 4%
+	conductive = 0
 
 // This all needs to be OOP'd and use inheritence if its ever used in the future.
 /material/cloth_teal
@@ -995,6 +1060,7 @@ var/list/name_to_material
 	ignition_point = T0C+232
 	melting_point = T0C+300
 	protectiveness = 1 // 4%
+	conductive = 0
 
 /material/cloth_black
 	name = "black"
@@ -1005,6 +1071,7 @@ var/list/name_to_material
 	ignition_point = T0C+232
 	melting_point = T0C+300
 	protectiveness = 1 // 4%
+	conductive = 0
 
 /material/cloth_green
 	name = "green"
@@ -1015,6 +1082,7 @@ var/list/name_to_material
 	ignition_point = T0C+232
 	melting_point = T0C+300
 	protectiveness = 1 // 4%
+	conductive = 0
 
 /material/cloth_puple
 	name = "purple"
@@ -1025,6 +1093,7 @@ var/list/name_to_material
 	ignition_point = T0C+232
 	melting_point = T0C+300
 	protectiveness = 1 // 4%
+	conductive = 0
 
 /material/cloth_blue
 	name = "blue"
@@ -1035,6 +1104,7 @@ var/list/name_to_material
 	ignition_point = T0C+232
 	melting_point = T0C+300
 	protectiveness = 1 // 4%
+	conductive = 0
 
 /material/cloth_beige
 	name = "beige"
@@ -1045,6 +1115,7 @@ var/list/name_to_material
 	ignition_point = T0C+232
 	melting_point = T0C+300
 	protectiveness = 1 // 4%
+	conductive = 0
 
 /material/cloth_lime
 	name = "lime"
@@ -1055,6 +1126,29 @@ var/list/name_to_material
 	ignition_point = T0C+232
 	melting_point = T0C+300
 	protectiveness = 1 // 4%
+	conductive = 0
+
+/material/cloth_yellow
+	name = "yellow"
+	display_name = "yellow"
+	use_name = "yellow cloth"
+	icon_colour = "#EEF573"
+	flags = MATERIAL_PADDING
+	ignition_point = T0C+232
+	melting_point = T0C+300
+	protectiveness = 1 // 4%
+	conductive = 0
+
+/material/cloth_orange
+	name = "orange"
+	display_name = "orange"
+	use_name = "orange cloth"
+	icon_colour = "#E3BF49"
+	flags = MATERIAL_PADDING
+	ignition_point = T0C+232
+	melting_point = T0C+300
+	protectiveness = 1 // 4%
+	conductive = 0
 
 /material/toy_foam
 	name = "foam"
@@ -1067,3 +1161,4 @@ var/list/name_to_material
 	hardness = 1
 	weight = 1
 	protectiveness = 0 // 0%
+	conductive = 0

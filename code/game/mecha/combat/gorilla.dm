@@ -87,7 +87,7 @@
 	max_universal_equip = 5
 	max_special_equip = 2
 
-/obj/mecha/combat/gorilla/New()
+/obj/mecha/combat/gorilla/Initialize()
 	..()
 	var/obj/item/mecha_parts/mecha_equipment/ME = new /obj/item/mecha_parts/mecha_equipment/tesla_energy_relay(src) // This thing basically cannot function without an external power supply.
 	ME.attach(src)
@@ -178,10 +178,10 @@
 		src.log_message("Toggled zoom mode.")
 		src.occupant_message("<font color='[src.zoom?"blue":"red"]'>Zoom mode [zoom?"en":"dis"]abled.</font>")
 		if(zoom)
-			src.occupant.client.view = 12
+			src.occupant.set_viewsize(12)
 			playsound(src.occupant, 'sound/mecha/imag_enh.ogg',50)
 		else
-			src.occupant.client.view = world.view//world.view - default mob view size
+			src.occupant.set_viewsize() // Reset to default
 	return
 
 
